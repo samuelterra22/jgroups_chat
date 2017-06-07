@@ -7,11 +7,11 @@ import java.awt.event.*;
 /**
  * Created by samuel on 06/06/17.
  */
-public class ChatInterface extends JFrame implements WindowListener, MouseListener, KeyListener {
+public class ChatInterface extends JFrame implements WindowListener {
 
-    private TextArea messageArea    = null;
-    private TextField sendArea      = null;
-    private String userName         = "Samuel";
+    private TextArea messageArea;
+    private TextField sendArea;
+    private String userName;
 
     public ChatInterface(String s) {
         super(s);
@@ -27,23 +27,38 @@ public class ChatInterface extends JFrame implements WindowListener, MouseListen
         this.add(messageArea, "Center");
         messageArea.setFont(new Font("Arial", Font.PLAIN, 16));
 
-        Panel p = new Panel();
-        p.setLayout(new FlowLayout());
-
         sendArea = new TextField(30);
-        sendArea.addKeyListener(this);
+        sendArea.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                keySendAresPressed();
+            }
+        });
         sendArea.setFont(new Font("Arial", Font.PLAIN, 16));
 
-        p.add(sendArea);
-        p.setBackground(new Color(221,221,221));
         Button send = new Button("Send");
-        send.addMouseListener(this);
-        p.add(send);
+        send.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                sendButtonPressed();
+            }
+        });
         Button clear = new Button("Clear");
-        clear.addMouseListener(this);
-        p.add(clear);
+        clear.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearButtonPressed();
+            }
+        });
+
+        if (userName == null)
+            this.userName = JOptionPane.showInputDialog("Escolha um nickname para usar o bate papo");
 
         JLabel labelUser = new JLabel("Usuário: "+userName);
+
+        Panel p = new Panel();
+        p.setLayout(new FlowLayout());
+        p.add(sendArea);
+        p.setBackground(new Color(221,221,221));  // Color.decode("#E0E4CC")
+        p.add(send);
+        p.add(clear);
         p.add(labelUser);
 
         this.add(p, "South");
@@ -52,44 +67,18 @@ public class ChatInterface extends JFrame implements WindowListener, MouseListen
 
     }
 
-    @Override
-    public void keyTyped(KeyEvent keyEvent) {
-
+    private void keySendAresPressed(){
+        messageArea.append(sendArea.getText()+"\n");
+        sendArea.setText(" ");
     }
 
-    @Override
-    public void keyPressed(KeyEvent keyEvent) {
-
+    private void sendButtonPressed(){
+        messageArea.append(sendArea.getText()+"\n");
+        sendArea.setText(" ");
     }
 
-    @Override
-    public void keyReleased(KeyEvent keyEvent) {
-
-    }
-
-    @Override
-    public void mouseClicked(MouseEvent mouseEvent) {
-
-    }
-
-    @Override
-    public void mousePressed(MouseEvent mouseEvent) {
-
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent mouseEvent) {
-
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent mouseEvent) {
-
-    }
-
-    @Override
-    public void mouseExited(MouseEvent mouseEvent) {
-
+    private void clearButtonPressed(){
+        sendArea.setText(" ");
     }
 
     @Override
