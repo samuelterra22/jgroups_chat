@@ -1,4 +1,4 @@
-package br.edu.ifmg.samuelterra.view;
+package br.edu.ifmg.samuelterra;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,7 +13,9 @@ public class ChatInterface extends JFrame implements WindowListener {
     private TextField sendArea;
     private String userName;
 
-    public ChatInterface(String s) {
+    // windows builder
+
+    public ChatInterface(String s)  {
         super(s);
 
         this.addWindowListener(this);
@@ -48,10 +50,10 @@ public class ChatInterface extends JFrame implements WindowListener {
             }
         });
 
-        if (userName == null)
-            this.userName = JOptionPane.showInputDialog("Escolha um nickname para usar o bate papo");
+        //if (userName == null)
+        //    this.userName = JOptionPane.showInputDialog("Escolha um nickname para usar o bate papo");
 
-        JLabel labelUser = new JLabel("Usuário: "+userName);
+        JLabel labelUser = new JLabel("Usuário: "+"Samuel");
 
         Panel p = new Panel();
         p.setLayout(new FlowLayout());
@@ -62,18 +64,19 @@ public class ChatInterface extends JFrame implements WindowListener {
         p.add(labelUser);
 
         this.add(p, "South");
+
         this.setVisible(true);
         sendArea.requestFocus();
 
     }
 
     private void keySendAresPressed(){
-        messageArea.append(sendArea.getText()+"\n");
+        messageArea.append(this.userName+": "+sendArea.getText()+"\n");
         sendArea.setText(" ");
     }
 
     private void sendButtonPressed(){
-        messageArea.append(sendArea.getText()+"\n");
+        messageArea.append(this.userName+": "+sendArea.getText()+"\n");
         sendArea.setText(" ");
     }
 
