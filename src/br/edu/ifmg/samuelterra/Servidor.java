@@ -1,4 +1,5 @@
 package br.edu.ifmg.samuelterra;
+
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ReceiverAdapter;
@@ -6,8 +7,8 @@ import org.jgroups.View;
 import org.jgroups.util.Util;
 
 import java.io.*;
-import java.util.List;
 import java.util.LinkedList;
+import java.util.List;
 
 public class Servidor extends ReceiverAdapter {
     JChannel channel;
@@ -19,23 +20,23 @@ public class Servidor extends ReceiverAdapter {
     }
 
     public void receive(Message msg) {
-        String line=msg.getSrc() + ": " + msg.getObject();
+        String line = msg.getSrc() + ": " + msg.getObject();
 
         System.out.println(line);
 
-        synchronized(state) {
+        synchronized (state) {
             state.add(line);
         }
     }
 
     public void getState(OutputStream output) throws Exception {
-        synchronized(state) {
+        synchronized (state) {
             Util.objectToStream(state, new DataOutputStream(output));
         }
     }
 
     public void setState(InputStream input) throws Exception {
-        List<String> list=(List<String>)Util.objectFromStream(new DataInputStream(input));
+        List<String> list = (List<String>) Util.objectFromStream(new DataInputStream(input));
         /**
          * Digamos, por exemplo, que duas Threads diferentes tentem chamar o método add para um dado objeto.
          * Como é o método é synchronized, uma Thread terá de esperar que a Thread que chamou o método primeiro termine
@@ -45,19 +46,19 @@ public class Servidor extends ReceiverAdapter {
          * objeto do ArrayList, o que provocaria problemas inesperados
          *
          * */
-        synchronized(state) {
+        synchronized (state) {
             state.clear();
             state.addAll(list);
         }
         System.out.println("received state (" + list.size() + " messages in chat history):");
-        for(String str: list) {
+        for (String str : list) {
             System.out.println(str);
         }
     }
 
 
     private void start() throws Exception {
-        channel=new JChannel();
+        channel = new JChannel();
         channel.setReceiver(this);
         channel.connect("ChatCluster");
         channel.getState(null, 10000);
@@ -66,19 +67,19 @@ public class Servidor extends ReceiverAdapter {
     }
 
     private void eventLoop() {
-        BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
-        while(true) {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        while (true) {
             try {
-                System.out.print("> "); System.out.flush();
-                String line=in.readLine().toLowerCase();
-                if(line.startsWith("quit") || line.startsWith("exit")) {
+                System.out.print("> ");
+                System.out.flush();
+                String line = in.readLine().toLowerCase();
+                if (line.startsWith("quit") || line.startsWith("exit")) {
                     break;
                 }
-                line="[" + user_name + "] " + line;
-                Message msg=new Message(null, line);
+                line = "[" + user_name + "] " + line;
+                Message msg = new Message(null, line);
                 channel.send(msg);
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
             }
         }
     }
