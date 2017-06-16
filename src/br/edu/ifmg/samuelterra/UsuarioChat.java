@@ -1,6 +1,8 @@
 package br.edu.ifmg.samuelterra;
 
 
+import br.edu.ifmg.samuelterra.controller.CriaMensagemChat;
+import br.edu.ifmg.samuelterra.model.Mensagem;
 import org.jgroups.*;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestOptions;

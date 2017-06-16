@@ -1,8 +1,6 @@
-package br.edu.ifmg.samuelterra;
+package br.edu.ifmg.samuelterra.model;
 
-/**
- * Created by samuel on 16/06/17.
- */
+
 public enum Tag {
     NOTIFICA_ONLINE,
     MENSAGEM_UNICAST,

@@ -1,10 +1,7 @@
-package br.edu.ifmg.samuelterra;
+package br.edu.ifmg.samuelterra.model;
 
 import java.io.Serializable;
 
-/**
- * Created by samuel on 15/06/17.
- */
 public class Mensagem implements Serializable {
 
     private String mensagem;

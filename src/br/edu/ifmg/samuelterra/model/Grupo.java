@@ -1,4 +1,6 @@
-package br.edu.ifmg.samuelterra;
+package br.edu.ifmg.samuelterra.model;
+
+import br.edu.ifmg.samuelterra.UsuarioChat;
 
 import java.util.List;
 

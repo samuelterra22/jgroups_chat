@@ -1,6 +1,8 @@
-package br.edu.ifmg.samuelterra;
+package br.edu.ifmg.samuelterra.controller;
 
 
+import br.edu.ifmg.samuelterra.model.Mensagem;
+import br.edu.ifmg.samuelterra.model.Tag;
 import org.jgroups.Address;
 import org.jgroups.Message;
 

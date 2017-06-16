@@ -1,4 +1,4 @@
-package br.edu.ifmg.samuelterra;
+package br.edu.ifmg.samuelterra.view;
 
 import javax.swing.*;
 import java.awt.*;
