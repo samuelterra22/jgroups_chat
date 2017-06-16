@@ -18,7 +18,7 @@ public class CriaMensagemChat {
 
 
     public Message criaMulticast(String remetente, String conteudo, String hora) {//unicast
-        Mensagem msg = new Mensagem(remetente, conteudo, hora);
+        Mensagem msg = new Mensagem(remetente, conteudo, hora, Tag.MENSAGEM_MULTCAST);
         this.pacoteMulti.setDest(null);//multicast
         this.pacoteMulti.setObject(msg);
         setMessagem(conteudo);

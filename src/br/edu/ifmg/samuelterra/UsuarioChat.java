@@ -46,6 +46,7 @@ public class UsuarioChat extends ReceiverAdapter {
         /* adiciona usuario no hash que faz a ligacao de nick <-> address*/
         //addUserToListNicks();
 
+        notificaOnline();
 
         canal.getState(null, 10000);
 
@@ -137,12 +138,6 @@ public class UsuarioChat extends ReceiverAdapter {
         System.out.println("Usuários on-line " + v.getMembers());
     }
 
-    private String getTime() {
-        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + ":" +
-                Calendar.getInstance().get(Calendar.MINUTE) + ":" +
-                Calendar.getInstance().get(Calendar.SECOND);
-    }
-
     public RspList sendMultCast(String conteudo) throws Exception{
 
         Address cluster = null; //endereço null significa TODOS os membros do cluster
@@ -183,6 +178,15 @@ public class UsuarioChat extends ReceiverAdapter {
         return despachante.castMessage(grupo, mensagem, opcoes);
     }
 
+    private void notificaOnline(){
+        //this.canal.send(new Mensagem(null));
+    }
+
+    private String getTime() {
+        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + ":" +
+                Calendar.getInstance().get(Calendar.MINUTE) + ":" +
+                Calendar.getInstance().get(Calendar.SECOND);
+    }
 
     private List<Address> getMembersOfCluster() {
         return canal.getView().getMembers();
