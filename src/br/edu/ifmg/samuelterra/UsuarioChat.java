@@ -1,8 +1,11 @@
 package br.edu.ifmg.samuelterra;
 
 
-import br.edu.ifmg.samuelterra.controller.CriaMensagemChat;
+import br.edu.ifmg.samuelterra.controller.CriaMensagem;
+import br.edu.ifmg.samuelterra.controller.Usuario;
 import br.edu.ifmg.samuelterra.model.Mensagem;
+import br.edu.ifmg.samuelterra.model.Pacote;
+import br.edu.ifmg.samuelterra.model.Tag;
 import org.jgroups.*;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestOptions;
@@ -19,7 +22,7 @@ public class UsuarioChat extends ReceiverAdapter {
 
     private MessageDispatcher despachante;
 
-    final Map<String, Address> nicknameToAddress = new HashMap<String, Address>();
+    final Map<String, Address> listaDeContatos = new HashMap<String, Address>();
     final List<String> state = new LinkedList<String>();
 
     /* variáveis da classe */
@@ -48,7 +51,7 @@ public class UsuarioChat extends ReceiverAdapter {
         /* adiciona usuario no hash que faz a ligacao de nick <-> address*/
         //addUserToListNicks();
 
-        notificaOnline();
+        listaDeContatos.put(nickname, canal.getAddress());
 
         canal.getState(null, 10000);
 
@@ -80,7 +83,7 @@ public class UsuarioChat extends ReceiverAdapter {
                 if (line.startsWith("add user"))
                     System.out.println("Adicionar novo usuario");
 
-                Message msg = new CriaMensagemChat().criaMulticast(nickname, line, getTime());
+                Message msg = new CriaMensagem().criaMulticast(nickname, line, getTime(), listaDeContatos);
 
                 canal.send(msg);
 
@@ -99,7 +102,6 @@ public class UsuarioChat extends ReceiverAdapter {
 
     public void setState(InputStream input) throws Exception {
         List<String> list = (List<String>) Util.objectFromStream(new DataInputStream(input));
-        HashMap<String, Address> us = (HashMap<String, Address>) Util.objectFromStream(new DataInputStream(input));
         /*
          * Digamos, por exemplo, que duas Threads diferentes tentem chamar o método add para um dado objeto.
          * Como é o método é synchronized, uma Thread terá de esperar que a Thread que chamou o método primeiro termine
@@ -122,28 +124,50 @@ public class UsuarioChat extends ReceiverAdapter {
 
     public void receive(Message pacote) {
 
-        Mensagem msg = (Mensagem) pacote.getObject();
+        Pacote p = (Pacote) pacote.getObject();
 
-        /* printa na tela a mensagem enviada no chat */
-        System.out.println("Usuário "+msg.getRemetente()+" enviou a mensagem: "+msg.getMensagem());
+        if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
+            listaDeContatos.putAll(p.getListaDeContatos());
+        } else {
+            Mensagem msg = p.getMensagem();
 
+            /* printa na tela a mensagem enviada no chat */
+            System.out.println("Usuário " + msg.getRemetente() + " enviou a mensagem: " + msg.getMensagem());
 
-        synchronized (state) {
-            state.add((String) msg.getMensagem());
+            listaDeContatos.put(msg.getRemetente(), pacote.getSrc());
+
+            listaDeContatos.putAll(p.getListaDeContatos());
+
+            synchronized (state) {
+                state.add(msg.getMensagem());
+            }
         }
 
-        //System.out.println(nicknameToAddress.size());
+        //System.out.println("Quantidade de usuários online: "+getNumeroDeUsuariosOnline());
+        //getListaDeNicknames();
+        System.out.println(getUsuariosOnline().size());
     }
 
     public void viewAccepted(View v) {
         /* printa na tela informado ao grupo que um novo usuário está na conversa */
-        System.out.println("Usuários on-line " + v.getMembers());
+        altualizaListaDeContatos();
     }
 
-    public RspList sendMultCast(String conteudo) throws Exception{
+    public void altualizaListaDeContatos() {
+        //Tag.MENSAGEM_MULTCAST
+        Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
+        Message message = new Message(null, pacote);
+        try {
+            canal.send(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public RspList sendMultCast(String conteudo) throws Exception {
 
         Address cluster = null; //endereço null significa TODOS os membros do cluster
-        Message mensagem=new Message(cluster, "{MULTICAST} "+conteudo);
+        Message mensagem = new Message(cluster, "{MULTICAST} " + conteudo);
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
@@ -154,7 +178,7 @@ public class UsuarioChat extends ReceiverAdapter {
         return despachante.castMessage(null, mensagem, opcoes);
     }
 
-    private String sendUniCast(Address destino, String conteudo) throws Exception{
+    private String sendUniCast(Address destino, String conteudo) throws Exception {
 
         Message mensagem = new Message(destino, "{ UNICAST } " + conteudo);
 
@@ -163,13 +187,13 @@ public class UsuarioChat extends ReceiverAdapter {
         opcoes.setMode(ResponseMode.GET_FIRST); // não espera receber a resposta do destino (ALL, MAJORITY, FIRST, NONE)
 
 
-
         return despachante.sendMessage(mensagem, opcoes);
     }
 
-    private RspList sendAnyCast(List<Address> grupo, String conteudo) throws Exception{
+    private RspList sendAnyCast(List<Address> grupo, String conteudo) throws Exception {
 
-        Message mensagem=new Message(null, "{ ANYCAST } " + conteudo); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
+        //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
+        Message mensagem = new Message(null, "{ ANYCAST } " + conteudo);
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
@@ -180,30 +204,29 @@ public class UsuarioChat extends ReceiverAdapter {
         return despachante.castMessage(grupo, mensagem, opcoes);
     }
 
-    private void notificaOnline(){
-        //this.canal.send(new Mensagem(null));
-    }
-
     private String getTime() {
         return Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + ":" +
                 Calendar.getInstance().get(Calendar.MINUTE) + ":" +
                 Calendar.getInstance().get(Calendar.SECOND);
     }
 
-    private List<Address> getMembersOfCluster() {
-        return canal.getView().getMembers();
+    public int getNumeroDeUsuariosOnline(){
+        return listaDeContatos.size();
     }
 
-    private Address getLastMemberOfCluster() {
-        return canal.getView().getMembers().get(getNumOfMenbers() - 1);
+    public List<String> getListaDeNicknames(){
+        List<String> nicks = new ArrayList<>();
+        nicks.addAll(listaDeContatos.keySet());
+        return nicks;
     }
 
-    private int getNumOfMenbers() {
-        return canal.getView().getMembers().size();
-    }
-
-    private void addUserToListNicks() {
-        nicknameToAddress.put(this.nickname, getLastMemberOfCluster());
+    public List<Usuario> getUsuariosOnline(){
+        List<Usuario> usuarios = new ArrayList<>();
+        List<String> nicks = getListaDeNicknames();
+        for (String nick : nicks) {
+            usuarios.add(new Usuario(nick, listaDeContatos.get(nick)));
+        }
+        return usuarios;
     }
 
 }

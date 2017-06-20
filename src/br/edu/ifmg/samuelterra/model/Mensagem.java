@@ -8,21 +8,12 @@ public class Mensagem implements Serializable {
     private String remetente;
     private String destinatario;
     private String hora;
-    private Tag tag;
 
-    public Mensagem(String mensagem, String remetente, String hora, Tag tag) {
+
+    public Mensagem(String mensagem, String remetente, String hora) {
         this.mensagem = mensagem;
         this.remetente = remetente;
         this.hora = hora;
-        this.tag = tag;
-    }
-
-    public Tag getTag() {
-        return tag;
-    }
-
-    public void setTag(Tag tag) {
-        this.tag = tag;
     }
 
     public String getMensagem() {

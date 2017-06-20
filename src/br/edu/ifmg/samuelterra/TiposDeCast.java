@@ -53,7 +53,7 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
         grupo.add(segundoMembro);
         grupo.add(ultimoMembro);
 
-        if( meuEndereco.equals(primeiroMembro) ) {  // somente o primeiro membro envia o teste abaixo
+        if( meuEndereco.equals(primeiroMembro) ) {  // somente o primeiro membro envia o getListaDeNicknames abaixo
 
             try {
                 enviaUnicast( segundoMembro, "O segundo membro concorda?" ); //envia unicast para o primeiro

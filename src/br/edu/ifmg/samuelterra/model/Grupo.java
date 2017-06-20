@@ -1,33 +1,34 @@
 package br.edu.ifmg.samuelterra.model;
 
-import br.edu.ifmg.samuelterra.UsuarioChat;
+
+import br.edu.ifmg.samuelterra.controller.Usuario;
 
 import java.util.List;
 
 public class Grupo {
 
-    private String groupName;
+    private String nome;
 
-    private List<UsuarioChat> usuarios;
+    private List<Usuario> usuarios;
 
-    public Grupo(String groupName, List<UsuarioChat> usuarios) {
-        this.groupName = groupName;
+    public Grupo(String nome, List<Usuario> usuarios) {
+        this.nome = nome;
         this.usuarios = usuarios;
     }
 
-    public String getGroupName() {
-        return groupName;
+    public String getNome() {
+        return nome;
     }
 
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
-    public List<UsuarioChat> getUsuarios() {
+    public List<Usuario> getUsuarios() {
         return usuarios;
     }
 
-    public void setUsuarios(List<UsuarioChat> usuarios) {
+    public void setUsuarios(List<Usuario> usuarios) {
         this.usuarios = usuarios;
     }
 }
