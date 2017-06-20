@@ -7,9 +7,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 
-/**
- * Created by samuel on 06/06/17.
- */
 public class ChatInterface extends JFrame implements WindowListener {
 
     private TextArea messageArea;
