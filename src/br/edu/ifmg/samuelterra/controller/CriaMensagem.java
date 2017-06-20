@@ -6,10 +6,11 @@ import br.edu.ifmg.samuelterra.model.Tag;
 import org.jgroups.Address;
 import org.jgroups.Message;
 
+import java.io.Serializable;
 import java.util.Map;
 
 
-public class CriaMensagem {
+public class CriaMensagem implements Serializable {
 
     private String conteudo;
     private Message pacoteMulti, pacoteUni, pacoteAny;
@@ -21,18 +22,28 @@ public class CriaMensagem {
     }
 
 
-    public Message criaMulticast(String remetente, String conteudo, String hora, Map<String,Address> listaDeContatos) {//multicast
-        Mensagem msg = new Mensagem(conteudo, remetente, hora);
+    public Message criaMulticast(Usuario remetente, String conteudo, String hora, Map<String, Address> listaDeContatos) {//multicast
+        Mensagem msg = new Mensagem(null, remetente, conteudo, hora);
         Pacote pacote = new Pacote(msg, listaDeContatos, Tag.MENSAGEM_MULTCAST);
+
+        //this.pacoteMulti.setSrc(remetente.getAddress());
         this.pacoteMulti.setDest(null);//multicast
         this.pacoteMulti.setObject(pacote);
         setMessagem(conteudo);
         return this.pacoteMulti;
     }
 
-    public Message criaUnicast(String remetente, Address destinatario, String conteudo) {//unicast
-        this.pacoteUni.setObject(conteudo);//unicast
-        this.pacoteUni.setDest(destinatario);
+    public Message criaUnicast(Usuario destinatario, Usuario remetente,  String conteudo, String hora, Map<String, Address> listaDeContatos) {//unicast
+        Mensagem msg = new Mensagem(destinatario, remetente, conteudo, hora);
+        Pacote pacote = new Pacote(msg, listaDeContatos, Tag.MENSAGEM_UNICAST);
+
+        System.out.println("Enviando mensagem");
+        System.out.println("Remetente: "+remetente.getNickname());
+        System.out.println("Destinatario: "+destinatario.getNickname());
+
+        this.pacoteUni.setSrc(remetente.getAddress());
+        this.pacoteUni.setDest(destinatario.getAddress());
+        this.pacoteUni.setObject(pacote);//unicast
         setMessagem(conteudo);
         return this.pacoteUni;
     }

@@ -3,7 +3,9 @@ package br.edu.ifmg.samuelterra.controller;
 
 import org.jgroups.Address;
 
-public class Usuario {
+import java.io.Serializable;
+
+public class Usuario implements Serializable {
 
     private String nickname;
     private Address address;

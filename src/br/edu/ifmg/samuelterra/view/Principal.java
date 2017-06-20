@@ -5,6 +5,7 @@ import br.edu.ifmg.samuelterra.controller.Usuario;
 import br.edu.ifmg.samuelterra.model.Mensagem;
 import br.edu.ifmg.samuelterra.model.Pacote;
 import br.edu.ifmg.samuelterra.model.Tag;
+import com.sun.xml.internal.fastinfoset.sax.SystemIdResolver;
 import org.jgroups.*;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestOptions;
@@ -20,6 +21,8 @@ public class Principal extends ReceiverAdapter {
 
     private String nickname = null;
     private JChannel canal = null;
+
+    private Usuario eu;
 
     private String chatName;
 
@@ -123,8 +126,10 @@ public class Principal extends ReceiverAdapter {
                     canal.setReceiver(this);
                     canal.connect("JChat");
                     this.meuEndereco = canal.getAddress();
+                    this.eu = new Usuario(this.nickname, meuEndereco);
                     canal.getState(null, 10000);
                     listaDeContatos.put(nickname, meuEndereco);
+                    altualizaListaDeContatos();
                 }else {
                     System.out.println("O apelido definido escolhido já está em uso. Escolha outro e tente novamente.");
                 }
@@ -169,9 +174,9 @@ public class Principal extends ReceiverAdapter {
         } else {
             Mensagem msg = p.getMensagem();
 
-            System.out.println("["+msg.getHora()+"]" + msg.getRemetente() + ": " + msg.getMensagem());
+            System.out.println("["+msg.getHora()+"]" + msg.getRemetente().getNickname() + ": " + msg.getMensagem());
 
-            listaDeContatos.put(msg.getRemetente(), pacote.getSrc());
+            listaDeContatos.put(msg.getRemetente().getNickname(), pacote.getSrc());
 
             listaDeContatos.putAll(p.getListaDeContatos());
 
@@ -193,50 +198,11 @@ public class Principal extends ReceiverAdapter {
         Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
         Message message = new Message(null, pacote);
         try {
+            System.out.println("Atualizando lista de contatos...");
             canal.send(message);
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public RspList sendMultCast(String conteudo) throws Exception {
-
-        Address cluster = null; //endereço null significa TODOS os membros do cluster
-        Message mensagem = new Message(cluster, "{MULTICAST} " + conteudo);
-
-        RequestOptions opcoes = new RequestOptions();
-        opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
-
-        opcoes.setAnycasting(false);
-
-        return despachante.castMessage(null, mensagem, opcoes);
-    }
-
-    private String sendUniCast(Address destino, String conteudo) throws Exception {
-
-        Message mensagem = new Message(destino, "{ UNICAST } " + conteudo);
-
-        RequestOptions opcoes = new RequestOptions();
-        opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_FIRST); // não espera receber a resposta do destino (ALL, MAJORITY, FIRST, NONE)
-
-
-        return despachante.sendMessage(mensagem, opcoes);
-    }
-
-    private RspList sendAnyCast(List<Address> grupo, String conteudo) throws Exception {
-
-        //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
-        Message mensagem = new Message(null, "{ ANYCAST } " + conteudo);
-
-        RequestOptions opcoes = new RequestOptions();
-        opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_MAJORITY); // espera receber a resposta da maioria do grupo (ALL, MAJORITY, FIRST, NONE)
-
-        opcoes.setAnycasting(true);
-
-        return despachante.castMessage(grupo, mensagem, opcoes);
     }
 
     private String getTime() {
@@ -265,61 +231,136 @@ public class Principal extends ReceiverAdapter {
     }
 
     public void verAmigosOnline(){
-        if (getNumeroDeUsuariosOnline() == 1){
-            System.out.println("Apenas você online.");
-        }else {
-            for (Usuario u : getUsuariosOnline()) {
-                System.out.println(u.getNickname());
+        if (isOnline()){
+            if (getNumeroDeUsuariosOnline() == 1){
+                System.out.println("Apenas você online.");
+            }else {
+                System.out.println(getNumeroDeUsuariosOnline() +" usuários online (incluindo você).");
+                for (Usuario u : getUsuariosOnline()) {
+                    if (u.getAddress().equals(eu.getAddress())){
+                        System.out.println(u.getNickname()+" (Você)");
+                    }else {
+                        System.out.println(u.getNickname());
+                    }
+                }
             }
+        }else{
+            System.out.println("Você precisa estar online para ver a lista de amigos");
+        }
+    }
+
+    public Usuario escolheAmigo(){
+
+        List<String> listaDeNicks = new ArrayList<>();
+        listaDeNicks.addAll(listaDeContatos.keySet());
+        Usuario amigo = null;
+        String op;
+
+        while (amigo == null){
+            System.out.println("Selecione um amigo para iniciar a conversa:");
+            for (int i=0; i < listaDeNicks.size(); i++) {
+                if (listaDeContatos.get(listaDeNicks.get(i)) == eu.getAddress()){
+                    System.out.println("("+i+") "+ listaDeNicks.get(i)+" (Você)");
+                }else {
+                    System.out.println("("+i+") "+ listaDeNicks.get(i));
+                }
+            }
+            op = leTextoTeclado();
+            if (op != null){
+                if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
+                    amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)), listaDeContatos.get(Integer.parseInt(op)));
+                }else {
+                    System.out.println("Opção inválida");
+                }
+            }
+        }
+        System.out.println("Retornando: "+amigo.getNickname());
+        return amigo;
+    }
+
+    public void enviaMensagemGrupo(){
+        if (getNumeroDeUsuariosOnline() > 1){
+            if (isOnline() && nickDefinido()){
+                System.out.println("Conversa em grupo.");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+                String line;
+                System.out.print("Use 'quit' ou 'exit' para sair da conversa.");
+                while (true) {
+                    try {
+                        System.out.print("> ");
+                        System.out.flush();
+                        line = in.readLine().toLowerCase();
+                        if (line.startsWith("quit") || line.startsWith("exit")) {
+                            break;
+                        }
+
+                        //Message msg = new CriaMensagem().criaUnicast(amigo, eu, line, getTime(), listaDeContatos);
+                        Message msg = new CriaMensagem().criaMulticast(eu, "teste",getTime(), listaDeContatos);
+
+                        canal.send(msg);
+
+                    } catch (Exception e) {
+                        System.out.println("Erro: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }else {
+                System.out.println("Vocẽ deve ficar online e definir um nick primeiro!");
+            }
+        }else {
+            System.out.println("Para inicial uma conversa é necessário ter pelo menos dois usuários online.");
         }
     }
 
     public void enviaMensagemAmigo(){
-        if (isOnline() && nickDefinido()){
-            System.out.println("Conversa privada.");
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-            String line;
-            while (true) {
-                try {
-                    System.out.print("> ");
-                    System.out.flush();
-                    line = in.readLine().toLowerCase();
-                    if (line.startsWith("quit") || line.startsWith("exit")) {
-                        System.out.println("Bye");
-                        break;
+        if (getNumeroDeUsuariosOnline() > 1){
+            if (isOnline() && nickDefinido()){
+                System.out.println("Conversa privada.");
+
+                Usuario amigo = escolheAmigo();
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+                String line;
+                System.out.print("Use 'quit' ou 'exit' para sair da conversa.");
+                while (true) {
+                    try {
+                        System.out.print("> ");
+                        System.out.flush();
+                        line = in.readLine().toLowerCase();
+                        if (line.startsWith("quit") || line.startsWith("exit")) {
+                            break;
+                        }
+
+                        Message msg = new CriaMensagem().criaUnicast(amigo, eu, line, getTime(), listaDeContatos);
+
+                        canal.send(msg);
+
+                    } catch (Exception e) {
+                        System.out.println("Erro: " + e.getMessage());
+                        e.printStackTrace();
                     }
-                    if (line.startsWith("new group"))
-                        System.out.println("Adicionar novo grupo");
-
-                    if (line.startsWith("add user"))
-                        System.out.println("Adicionar novo usuario");
-
-                    Message msg = new CriaMensagem().criaMulticast(nickname, line, getTime(), listaDeContatos);
-
-                    canal.send(msg);
-
-                } catch (Exception e) {
-                    System.out.println("Erro: " + e.getMessage());
-                    e.printStackTrace();
                 }
+            }else {
+                System.out.println("Vocẽ deve ficar online e definir um nick primeiro!");
             }
         }else {
-            System.out.println("Vocẽ deve ficar online e definir um nick primeiro!");
+            System.out.println("Para inicial uma conversa é necessário ter pelo menos dois usuários online.");
         }
     }
 
     public void menuPrincipal() throws Exception {
 
         StringBuffer menuPrincipal = new StringBuffer();
-        menuPrincipal.append("***  JGroups Chat v1.0  ***\n");
+        menuPrincipal.append("\n***  JGroups Chat v1.0  ***\n");
         menuPrincipal.append("Selecione uma opção:\n\n");
         menuPrincipal.append("1. Ficar online/offline\n");
         menuPrincipal.append("2. Mudar nickname\n");
-        menuPrincipal.append("3. Ver lista de contatos\n");
+        menuPrincipal.append("3. Ver lista de amigos\n");
         menuPrincipal.append("4. Enviar mensagem para um amigo\n");
         menuPrincipal.append("5. Gerenciar grupos\n");
         menuPrincipal.append("6. Sobre\n");
-        menuPrincipal.append("7. Sair\n");
+        menuPrincipal.append("7. Sair\n\n");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         int opcao = 0;
@@ -349,10 +390,12 @@ public class Principal extends ReceiverAdapter {
                 case (4):{
                     //System.out.println("Enviar mensagem para um amigo");
                     enviaMensagemAmigo();
+                    //escolheAmigo();
                     break;
                 }
                 case (5):{
                     System.out.println("Grupos");
+                    enviaMensagemGrupo();
                     break;
                 }
                 case (6):{

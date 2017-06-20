@@ -83,7 +83,7 @@ public class UsuarioChat extends ReceiverAdapter {
                 if (line.startsWith("add user"))
                     System.out.println("Adicionar novo usuario");
 
-                Message msg = new CriaMensagem().criaMulticast(nickname, line, getTime(), listaDeContatos);
+                Message msg = new CriaMensagem().criaMulticast(/*nickname*/null, line, getTime(), listaDeContatos);
 
                 canal.send(msg);
 
@@ -134,7 +134,7 @@ public class UsuarioChat extends ReceiverAdapter {
             /* printa na tela a mensagem enviada no chat */
             System.out.println("Usuário " + msg.getRemetente() + " enviou a mensagem: " + msg.getMensagem());
 
-            listaDeContatos.put(msg.getRemetente(), pacote.getSrc());
+            listaDeContatos.put(msg.getRemetente().getNickname(), pacote.getSrc());
 
             listaDeContatos.putAll(p.getListaDeContatos());
 
@@ -158,14 +158,15 @@ public class UsuarioChat extends ReceiverAdapter {
         Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
         Message message = new Message(null, pacote);
         try {
-            canal.send(message);
+            //canal.send(message);
+            sendMultCast(message);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public RspList sendMultCast(String conteudo) throws Exception {
-
+    public RspList sendMultCast(Message message) throws Exception {
+        /*
         Address cluster = null; //endereço null significa TODOS os membros do cluster
         Message mensagem = new Message(cluster, "{MULTICAST} " + conteudo);
 
@@ -176,6 +177,16 @@ public class UsuarioChat extends ReceiverAdapter {
         opcoes.setAnycasting(false);
 
         return despachante.castMessage(null, mensagem, opcoes);
+        */
+
+        RequestOptions opcoes = new RequestOptions();
+        opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
+        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
+
+        opcoes.setAnycasting(false);
+
+        return despachante.castMessage(null, message, opcoes);
+
     }
 
     private String sendUniCast(Address destino, String conteudo) throws Exception {
