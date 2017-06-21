@@ -33,13 +33,11 @@ public class CriaMensagem implements Serializable {
         return this.pacoteMulti;
     }
 
+    // retorna um objeto Message ja montado com o Pacote contendo as informações necessarias
     public Message criaUnicast(Usuario destinatario, Usuario remetente,  String conteudo, String hora, Map<String, Address> listaDeContatos) {//unicast
+
         Mensagem msg = new Mensagem(destinatario, remetente, conteudo, hora);
         Pacote pacote = new Pacote(msg, listaDeContatos, Tag.MENSAGEM_UNICAST);
-
-        System.out.println("Enviando mensagem");
-        System.out.println("Remetente: "+remetente.getNickname());
-        System.out.println("Destinatario: "+destinatario.getNickname());
 
         this.pacoteUni.setSrc(remetente.getAddress());
         this.pacoteUni.setDest(destinatario.getAddress());

@@ -8,6 +8,7 @@ import br.edu.ifmg.samuelterra.model.Tag;
 import com.sun.xml.internal.fastinfoset.sax.SystemIdResolver;
 import org.jgroups.*;
 import org.jgroups.blocks.MessageDispatcher;
+import org.jgroups.blocks.RequestHandler;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
 import org.jgroups.util.RspList;
@@ -17,7 +18,7 @@ import javax.swing.text.StyledEditorKit;
 import java.io.*;
 import java.util.*;
 
-public class Principal extends ReceiverAdapter {
+public class Principal extends ReceiverAdapter implements RequestHandler {
 
     private String nickname = null;
     private JChannel canal = null;
@@ -123,6 +124,12 @@ public class Principal extends ReceiverAdapter {
                 if (!nickExiste()){
                     System.out.println("Você não está online, conectando...");
                     canal = new JChannel();
+
+                    despachante = new MessageDispatcher(canal, null, null, this);
+                    despachante.setRequestHandler(this);
+                    despachante.setMessageListener(this);
+                    despachante.setMembershipListener(this);
+
                     canal.setReceiver(this);
                     canal.connect("JChat");
                     this.meuEndereco = canal.getAddress();
@@ -165,23 +172,51 @@ public class Principal extends ReceiverAdapter {
         }
     }
 
-    public void receive(Message pacote) {
+    @Override
+    public Object handle(Message message) throws Exception {
 
-        Pacote p = (Pacote) pacote.getObject();
+        Pacote p = (Pacote) message.getObject();
+
+        /*if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
+            listaDeContatos.putAll(p.getListaDeContatos());
+            return "CONTATOS ATUALIZADOS";
+
+        }
+        else //não precisa de votação...
+        */
+
+        Mensagem msgChat = p.getMensagem();
+
+        System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+
+        listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
+
+        listaDeContatos.putAll(p.getListaDeContatos());
+
+        synchronized (state) {
+            state.add(msgChat.getMensagem());
+        }
+
+            return null;
+    }
+
+    public void receive(Message msgJGroups) {
+
+        Pacote p = (Pacote) msgJGroups.getObject();
 
         if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
             listaDeContatos.putAll(p.getListaDeContatos());
         } else {
-            Mensagem msg = p.getMensagem();
+            Mensagem msgChat = p.getMensagem();
 
-            System.out.println("["+msg.getHora()+"]" + msg.getRemetente().getNickname() + ": " + msg.getMensagem());
+            System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
 
-            listaDeContatos.put(msg.getRemetente().getNickname(), pacote.getSrc());
+            listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
 
             listaDeContatos.putAll(p.getListaDeContatos());
 
             synchronized (state) {
-                state.add(msg.getMensagem());
+                state.add(msgChat.getMensagem());
             }
         }
 
@@ -203,6 +238,25 @@ public class Principal extends ReceiverAdapter {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        /*
+        Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
+        Message message = new Message(null, pacote);
+
+        System.out.println("Atualizando lista de contatos...");
+        RequestOptions opcoes = new RequestOptions();
+        opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
+        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
+
+        opcoes.setAnycasting(false);
+        try {
+            RspList respList = despachante.castMessage(null, message, opcoes); //MULTICAST
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */
+
+
     }
 
     private String getTime() {
@@ -259,7 +313,7 @@ public class Principal extends ReceiverAdapter {
         while (amigo == null){
             System.out.println("Selecione um amigo para iniciar a conversa:");
             for (int i=0; i < listaDeNicks.size(); i++) {
-                if (listaDeContatos.get(listaDeNicks.get(i)) == eu.getAddress()){
+                if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())){
                     System.out.println("("+i+") "+ listaDeNicks.get(i)+" (Você)");
                 }else {
                     System.out.println("("+i+") "+ listaDeNicks.get(i));
@@ -268,7 +322,8 @@ public class Principal extends ReceiverAdapter {
             op = leTextoTeclado();
             if (op != null){
                 if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
-                    amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)), listaDeContatos.get(Integer.parseInt(op)));
+                    amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)),
+                            listaDeContatos.get(listaDeNicks.get(Integer.parseInt(op))));
                 }else {
                     System.out.println("Opção inválida");
                 }
@@ -322,7 +377,7 @@ public class Principal extends ReceiverAdapter {
 
                 BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
                 String line;
-                System.out.print("Use 'quit' ou 'exit' para sair da conversa.");
+                System.out.println("Use 'quit' ou 'exit' para sair da conversa.");
                 while (true) {
                     try {
                         System.out.print("> ");
@@ -332,9 +387,9 @@ public class Principal extends ReceiverAdapter {
                             break;
                         }
 
-                        Message msg = new CriaMensagem().criaUnicast(amigo, eu, line, getTime(), listaDeContatos);
+                        System.out.println("["+getTime()+"]" + eu.getNickname() + ": " +line);
+                        enviaUnicast(amigo, eu, line);
 
-                        canal.send(msg);
 
                     } catch (Exception e) {
                         System.out.println("Erro: " + e.getMessage());
@@ -416,4 +471,39 @@ public class Principal extends ReceiverAdapter {
         }
     }
 
+    private void enviaUnicast(Usuario destinatario, Usuario remetente, String conteudo) throws Exception{
+
+        Message msg = new CriaMensagem().criaUnicast(destinatario, remetente, conteudo, getTime(), listaDeContatos);
+
+        RequestOptions opcoes = new RequestOptions();
+        opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
+        opcoes.setMode(ResponseMode.GET_ALL); // não espera receber a resposta do destino (ALL, MAJORITY, FIRST, NONE)
+
+        despachante.sendMessage(msg, opcoes); //UNICAST
+    }
+
+    private void enviaMulticast(String conteudo) throws Exception{
+
+        Message mensagem=new Message(null, "{MULTICAST} "+conteudo);
+
+        RequestOptions opcoes = new RequestOptions();
+        opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
+        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
+
+        opcoes.setAnycasting(false);
+
+        RspList respList = despachante.castMessage(null, mensagem, opcoes); //MULTICAST
+        System.out.println("==> Respostas do cluster ao MULTICAST:\n" +respList+"\n");
+    }
+
 }
+
+
+    /*
+
+    GET_ALL: block until responses from all members (minus the suspected ones) have been received.
+    GET_NONE: wait for none. This makes the call non-blocking
+    GET_FIRST: block until the first response (from anyone) has been received
+    GET_MAJORITY: block until a majority of members have responded
+
+    */

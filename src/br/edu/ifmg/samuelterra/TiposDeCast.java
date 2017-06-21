@@ -28,8 +28,11 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
         canalDeComunicacao=new JChannel();
 
         despachante=new MessageDispatcher(canalDeComunicacao, null, null, this);
+        despachante.setMembershipListener(this);
+        despachante.setMessageListener(this);
+        despachante.setRequestHandler(this);
 
-        canalDeComunicacao.setReceiver(this);	//quem irá lidar com as mensagens recebidas
+        //canalDeComunicacao.setReceiver(this);	//quem irá lidar com as mensagens recebidas
 
         canalDeComunicacao.connect("TiposDeCast");
         eventLoop();
@@ -60,7 +63,7 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
 
                 enviaAnycast( grupo, "Os membros do grupo concordam?" ); //envia anycast para o primeiro e o último
 
-                enviaMulticast( "Todos concordam?" ); //envia multicast para todos
+                //enviaMulticast( "Todos concordam?" ); //envia multicast para todos
             }
             catch(Exception e) {
                 System.err.println( "ERRO: " + e.toString() );
@@ -76,7 +79,9 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
 
     }//eventLoop
 
-    private RspList enviaMulticast(String conteudo) throws Exception{
+
+
+    private RspList enviaMulticast(String conteudo, ResponseMode tipoDeVotacao) throws Exception{
         System.out.println("\nENVIEI a pergunta: " + conteudo);
 
         Address cluster = null; //endereço null significa TODOS os membros do cluster
@@ -84,7 +89,7 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
+        opcoes.setMode(tipoDeVotacao); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
 
         opcoes.setAnycasting(false);
 
@@ -101,11 +106,12 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_MAJORITY); // espera receber a resposta da maioria do grupo (ALL, MAJORITY, FIRST, NONE)
+        opcoes.setMode(ResponseMode.GET_NONE); // espera receber a resposta da maioria do grupo (ALL, MAJORITY, FIRST, NONE)
 
         opcoes.setAnycasting(true);
 
         RspList respList = despachante.castMessage(grupo, mensagem, opcoes); //ANYCAST
+
         System.out.println("==> Respostas do grupo ao ANYCAST:\n" +respList+"\n");
 
         return respList;
@@ -118,7 +124,7 @@ public class TiposDeCast extends ReceiverAdapter implements RequestHandler {
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_FIRST); // não espera receber a resposta do destino (ALL, MAJORITY, FIRST, NONE)
+        opcoes.setMode(ResponseMode.GET_NONE); // não espera receber a resposta do destino (ALL, MAJORITY, FIRST, NONE)
 
         String resp = despachante.sendMessage(mensagem, opcoes); //UNICAST
         System.out.println("==> Respostas do membro ao UNICAST:\n" +resp+"\n");

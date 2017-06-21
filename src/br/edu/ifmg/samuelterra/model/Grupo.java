@@ -32,4 +32,8 @@ public class Grupo implements Serializable {
     public void setUsuarios(List<Usuario> usuarios) {
         this.usuarios = usuarios;
     }
+
+    public void adicionaUsuario(Usuario u){
+        this.usuarios.add(u);
+    }
 }
