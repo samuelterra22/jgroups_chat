@@ -132,10 +132,13 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
                     canal.setReceiver(this);
                     canal.connect("JChat");
+
                     this.meuEndereco = canal.getAddress();
                     this.eu = new Usuario(this.nickname, meuEndereco);
                     canal.getState(null, 10000);
+
                     listaDeContatos.put(nickname, meuEndereco);
+
                     altualizaListaDeContatos();
                 }else {
                     System.out.println("O apelido definido escolhido já está em uso. Escolha outro e tente novamente.");
@@ -230,6 +233,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     }
 
     public void altualizaListaDeContatos() {
+
         Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
         Message message = new Message(null, pacote);
         try {
@@ -239,22 +243,22 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             e.printStackTrace();
         }
 
-        /*
-        Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
+
+        /*Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
         Message message = new Message(null, pacote);
 
         System.out.println("Atualizando lista de contatos...");
         RequestOptions opcoes = new RequestOptions();
-        opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
+        opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
+        opcoes.setMode(ResponseMode.GET_FIRST); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
 
         opcoes.setAnycasting(false);
         try {
-            RspList respList = despachante.castMessage(null, message, opcoes); //MULTICAST
+            despachante.castMessage(null, message, opcoes); //MULTICAST
         } catch (Exception e) {
             e.printStackTrace();
-        }
-        */
+        }*/
+
 
 
     }
@@ -351,9 +355,11 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                         }
 
                         //Message msg = new CriaMensagem().criaUnicast(amigo, eu, line, getTime(), listaDeContatos);
-                        Message msg = new CriaMensagem().criaMulticast(eu, "teste",getTime(), listaDeContatos);
+                        //Message msg = new CriaMensagem().criaMulticast(eu, "teste",getTime(), listaDeContatos);
+                        //canal.send(msg);
 
-                        canal.send(msg);
+                        System.out.println("["+getTime()+"]" + eu.getNickname() + ": " +line);
+                        //enviaMulticast(line);
 
                     } catch (Exception e) {
                         System.out.println("Erro: " + e.getMessage());
@@ -408,6 +414,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         StringBuffer menuPrincipal = new StringBuffer();
         menuPrincipal.append("\n***  JGroups Chat v1.0  ***\n");
+        menuPrincipal.append("\n***    Menu Principal  ***\n");
         menuPrincipal.append("Selecione uma opção:\n\n");
         menuPrincipal.append("1. Ficar online/offline\n");
         menuPrincipal.append("2. Mudar nickname\n");
@@ -449,8 +456,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     break;
                 }
                 case (5):{
-                    System.out.println("Grupos");
-                    enviaMensagemGrupo();
+                    menuGrupos();
+                    //enviaMensagemGrupo();
                     break;
                 }
                 case (6):{
@@ -469,6 +476,58 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                 }
             }
         }
+    }
+
+    public void menuGrupos() throws Exception {
+        StringBuffer menuPrincipal = new StringBuffer();
+        menuPrincipal.append("\n***  JGroups Chat v1.0  ***\n");
+        menuPrincipal.append("\n***   Gerenciar Grupos  ***\n");
+        menuPrincipal.append("Selecione uma opção:\n\n");
+        menuPrincipal.append("1. Criar grupo\n");
+        menuPrincipal.append("2. Apagar grupo\n");
+        menuPrincipal.append("3. Renomear grupo\n");
+        menuPrincipal.append("4. Adicionar amigo ao grupo\n");
+        menuPrincipal.append("5. Voltar\n\n");
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        int opcao = 0;
+        boolean sair = false;
+
+        while (!sair) {
+            System.out.println(menuPrincipal);
+            System.out.println("Status: " + isConectado());
+            System.out.println("Apelido: " + getNickname());
+            System.out.flush();
+            opcao = Integer.parseInt(in.readLine());
+            switch (opcao) {
+                case (1): {
+                    //System.out.println("");
+                    break;
+                }
+                case (2): {
+                    //System.out.println("");
+                    break;
+                }
+                case (3): {
+                    //System.out.println("");
+                    break;
+                }
+                case (4): {
+                    //System.out.println("");
+                    break;
+                }
+                case (5): {
+                    System.out.println("Voltando ao menu principal...");
+                    sair = true;
+                    break;
+                }
+                default: {
+                    System.out.println("Opção inválida!");
+                    break;
+                }
+            }
+        }
+
     }
 
     private void enviaUnicast(Usuario destinatario, Usuario remetente, String conteudo) throws Exception{
