@@ -2,6 +2,7 @@ package br.edu.ifmg.samuelterra.view;
 
 import br.edu.ifmg.samuelterra.controller.CriaMensagem;
 import br.edu.ifmg.samuelterra.controller.Usuario;
+import br.edu.ifmg.samuelterra.model.Grupo;
 import br.edu.ifmg.samuelterra.model.Mensagem;
 import br.edu.ifmg.samuelterra.model.Pacote;
 import br.edu.ifmg.samuelterra.model.Tag;
@@ -410,6 +411,52 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }
     }
 
+    public Grupo criaGrupo(){
+
+        List<String> listaDeNicks = new ArrayList<>();
+        listaDeNicks.addAll(listaDeContatos.keySet());
+
+        Grupo grupo = null;
+
+        List<String> listaSelecionados = new ArrayList<>();
+
+        String op;
+
+        while (true){
+            System.out.println("Selecione amigos para adicionar no grupo:");
+
+            // printa os amigos
+            for (int i=0; i < listaDeNicks.size(); i++) {
+                // printa se nao tiver na lista de selecionado
+                if (!listaSelecionados.contains(listaDeNicks.get(i))) {
+                    if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())) {
+                        System.out.println("(" + i + ") " + listaDeNicks.get(i) + " (Você)");
+                    } else {
+                        System.out.println("(" + i + ") " + listaDeNicks.get(i));
+                    }
+                }else{
+                    System.out.println("(" + i + ") " + listaDeNicks.get(i) + " (Selecionado)");
+                }
+            }
+            op = leTextoTeclado();
+            if (op != null){
+                if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
+                    //amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)), listaDeContatos.get(listaDeNicks.get(Integer.parseInt(op))));
+
+
+
+                }else if(op == "s"){
+                    break;
+                }
+                else {
+                    System.out.println("Opção inválida");
+                }
+            }
+        }
+
+        return null;
+    }
+
     public void menuPrincipal() throws Exception {
 
         StringBuffer menuPrincipal = new StringBuffer();
@@ -502,6 +549,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             switch (opcao) {
                 case (1): {
                     //System.out.println("");
+                    testaAnyCast();
                     break;
                 }
                 case (2): {
@@ -554,6 +602,52 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         RspList respList = despachante.castMessage(null, mensagem, opcoes); //MULTICAST
         System.out.println("==> Respostas do cluster ao MULTICAST:\n" +respList+"\n");
     }
+
+
+    private void enviaAnycast(Grupo g, String conteudo) throws Exception{
+
+        Collection<Address> grupo = g.getEnderecos();
+
+        Pacote p = new Pacote(new Mensagem(null, eu, "teste", getTime()), listaDeContatos, Tag.MENSAGEM_ANYCAST);
+
+        //Message mensagem = new Message(null, "{ ANYCAST } " + conteudo); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
+        Message mensagem = new Message(null, p); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
+
+        RequestOptions opcoes = new RequestOptions();
+        opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
+        opcoes.setMode(ResponseMode.GET_NONE); // espera receber a resposta da maioria do grupo (ALL, MAJORITY, FIRST, NONE)
+
+        opcoes.setAnycasting(true);
+
+        RspList respList = this.despachante.castMessage(grupo, mensagem, opcoes); //ANYCAST
+
+        System.out.println("==> Respostas do grupo ao ANYCAST:\n" +respList+"\n");
+
+    }
+
+
+    private void testaAnyCast(){
+
+
+        List<Address> aa = new ArrayList<>( listaDeContatos.values());
+        List<String> uu = new ArrayList<>( listaDeContatos.keySet());
+        List<Usuario> usuarios = new ArrayList<>();
+
+
+        for (String nick :uu) {
+            usuarios.add(new Usuario(nick, listaDeContatos.get(nick)));
+        }
+
+        Grupo g = new Grupo("Meu Grupo", eu, usuarios);
+
+        try {
+            enviaAnycast(g, "teste");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
 }
 
