@@ -6,7 +6,6 @@ import br.edu.ifmg.samuelterra.model.Grupo;
 import br.edu.ifmg.samuelterra.model.Mensagem;
 import br.edu.ifmg.samuelterra.model.Pacote;
 import br.edu.ifmg.samuelterra.model.Tag;
-import com.sun.xml.internal.fastinfoset.sax.SystemIdResolver;
 import org.jgroups.*;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestHandler;
@@ -15,7 +14,6 @@ import org.jgroups.blocks.ResponseMode;
 import org.jgroups.util.RspList;
 import org.jgroups.util.Util;
 
-import javax.swing.text.StyledEditorKit;
 import java.io.*;
 import java.util.*;
 
