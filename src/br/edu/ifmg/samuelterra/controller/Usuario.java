@@ -30,4 +30,12 @@ public class Usuario implements Serializable {
     public void setAddress(Address address) {
         this.address = address;
     }
+
+    @Override
+    public String toString() {
+        return "Usuario{" +
+                "nickname='" + nickname + '\'' +
+                ", address=" + address +
+                '}';
+    }
 }

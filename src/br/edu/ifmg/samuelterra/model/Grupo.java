@@ -16,6 +16,10 @@ public class Grupo implements Serializable {
 
     private List<Usuario> usuarios;
 
+    public Grupo() {
+        usuarios = new ArrayList<>();
+    }
+
     public Grupo(String nome, Usuario coordenador, List<Usuario> usuarios) {
         this.nome = nome;
         this.coordenador = coordenador;
@@ -36,7 +40,7 @@ public class Grupo implements Serializable {
     }
 
     public List<Usuario> getUsuarios() {
-        return usuarios;
+        return this.usuarios;
     }
 
     public void setUsuarios(List<Usuario> usuarios) {
@@ -65,4 +69,16 @@ public class Grupo implements Serializable {
         return enderecos;
     }
 
+    public int numeroDeUsuarios(){
+        return this.usuarios.size();
+    }
+
+    @Override
+    public String toString() {
+        return "Grupo{" +
+                "nome='" + nome + '\'' +
+                ", coordenador=" + coordenador +
+                ", usuarios=" + usuarios +
+                '}';
+    }
 }

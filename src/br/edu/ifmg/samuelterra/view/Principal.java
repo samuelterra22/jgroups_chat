@@ -24,6 +24,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     private Usuario eu;
 
+    private boolean conversando = false;
+
     private String chatName;
 
     private MessageDispatcher despachante;
@@ -57,6 +59,18 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    private Integer leNumeroTeclado(){
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        Integer n = null;
+        try {
+
+            n = Integer.parseInt(in.readLine());
+        } catch (Exception e) {
+            return null;
+        }
+        return n;
     }
 
     public void mudarApelido(){
@@ -146,7 +160,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                 System.out.println("Você ainda não definil um apelido. Defina um e tente novamente.");
             }
         }else{
-            System.out.println("Você está online, deseja realmente desconectar? ");
+            System.out.println("Você está online, deseja realmente desconectar? (s/n)");
             Boolean op = leBoolTeclado();
             if ((op!=null)&&(op)){
                 System.out.println("Desconectando...");
@@ -179,17 +193,25 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         Pacote p = (Pacote) message.getObject();
 
-        /*if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
-            listaDeContatos.putAll(p.getListaDeContatos());
-            return "CONTATOS ATUALIZADOS";
-
-        }
-        else //não precisa de votação...
-        */
-
         Mensagem msgChat = p.getMensagem();
 
+        System.out.println("DEBUG Handle: Tag: "+p.getTag());
+
+        /*if(p.getTag() == Tag.MENSAGEM_UNICAST){
+            if (!conversando){
+                Usuario amigo = msgChat.getDestinatario();
+                enviaMensagemAmigo(amigo);
+                conversando = true;
+            }else{
+                System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+            }
+        }else {
+            System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+        }*/
+
+
         System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+
 
         listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
 
@@ -206,9 +228,23 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         Pacote p = (Pacote) msgJGroups.getObject();
 
+        System.out.println("DEBUG Receive: Tag: "+p.getTag());
+
         if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
             listaDeContatos.putAll(p.getListaDeContatos());
-        } else {
+        }
+        /*else if(p.getTag() == Tag.MENSAGEM_UNICAST){
+            if (!conversando){
+                Mensagem msgChat = p.getMensagem();
+                Usuario amigo = msgChat.getDestinatario();
+                enviaMensagemAmigo(amigo);
+                conversando = true;
+            }else{
+                Mensagem msgChat = p.getMensagem();
+                System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+            }
+        }*/
+        else {
             Mensagem msgChat = p.getMensagem();
 
             System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
@@ -373,6 +409,40 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }
     }
 
+    public void enviaMensagemAmigo(Usuario amigo){
+        if (getNumeroDeUsuariosOnline() > 1){
+            if (isOnline() && nickDefinido()){
+                System.out.println("Conversa privada.");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+                String line;
+                System.out.println("Use 'quit' ou 'exit' para sair da conversa.");
+                while (true) {
+                    try {
+                        System.out.print("> ");
+                        System.out.flush();
+                        line = in.readLine().toLowerCase();
+                        if (line.startsWith("quit") || line.startsWith("exit")) {
+                            break;
+                        }
+
+                        System.out.println("["+getTime()+"]" + eu.getNickname() + ": " +line);
+                        enviaUnicast(amigo, eu, line);
+
+
+                    } catch (Exception e) {
+                        System.out.println("Erro: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }else {
+                System.out.println("Vocẽ deve ficar online e definir um nick primeiro!");
+            }
+        }else {
+            System.out.println("Para inicial uma conversa é necessário ter pelo menos dois usuários online.");
+        }
+    }
+
     public void enviaMensagemAmigo(){
         if (getNumeroDeUsuariosOnline() > 1){
             if (isOnline() && nickDefinido()){
@@ -414,14 +484,14 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         List<String> listaDeNicks = new ArrayList<>();
         listaDeNicks.addAll(listaDeContatos.keySet());
 
-        Grupo grupo = null;
+        Grupo grupo = new Grupo();
 
         List<String> listaSelecionados = new ArrayList<>();
 
-        String op;
+        Integer op;
 
         while (true){
-            System.out.println("Selecione amigos para adicionar no grupo:");
+            System.out.println("Selecione amigos para adicionar no grupo: (Informa '-1' para continuar)");
 
             // printa os amigos
             for (int i=0; i < listaDeNicks.size(); i++) {
@@ -436,14 +506,18 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     System.out.println("(" + i + ") " + listaDeNicks.get(i) + " (Selecionado)");
                 }
             }
-            op = leTextoTeclado();
+            op = leNumeroTeclado();
             if (op != null){
-                if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
-                    //amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)), listaDeContatos.get(listaDeNicks.get(Integer.parseInt(op))));
+                if ((op >= 0)&&(op < listaDeNicks.size())){
 
+                    if(listaDeContatos.get(listaDeNicks.get(op)).equals(eu.getAddress())){
+                        System.out.println("Você não pode selecionar você mesmo.");
+                    }else {
+                        listaSelecionados.add(listaDeNicks.get(op));
+                    }
 
-
-                }else if(op == "s"){
+                }else if(op == -1){
+                    // sai do menu de escolha de amigos
                     break;
                 }
                 else {
@@ -452,7 +526,25 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             }
         }
 
-        return null;
+        // adiciona usuarios selecionados ao grupo
+        for (String u :listaSelecionados) {
+            grupo.adicionaUsuario(new Usuario(u, listaDeContatos.get(u)));
+        }
+
+        String nomeGrupo = null;
+
+        // define o nome do grupo
+        while (nomeGrupo == null){
+            System.out.println("Escolha um nome para o grupo:");
+            nomeGrupo = leTextoTeclado();
+        }
+        grupo.setNome(nomeGrupo);
+
+        // define o coordenador como quem esta criando o grupo
+        grupo.setCoordenador(eu);
+
+        // retorna o grupo
+        return grupo;
     }
 
     public void menuPrincipal() throws Exception {
@@ -470,7 +562,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("7. Sair\n\n");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        int opcao = 0;
+        Integer opcao = 0;
         boolean sair = false;
 
         while (!sair){
@@ -478,48 +570,53 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             System.out.println("Status: "+isConectado());
             System.out.println("Apelido: "+getNickname());
             System.out.flush();
-            opcao = Integer.parseInt(in.readLine());
-            switch (opcao){
-                case (1):{
-                    //System.out.println("Ficar on-line");
-                    conecta();
-                    break;
-                }
-                case (2):{
-                    mudarApelido();
-                    break;
-                }
-                case (3):{
-                    //System.out.println("Ver lista de contatos");
-                    verAmigosOnline();
-                    break;
-                }
-                case (4):{
-                    //System.out.println("Enviar mensagem para um amigo");
-                    enviaMensagemAmigo();
-                    //escolheAmigo();
-                    break;
-                }
-                case (5):{
-                    menuGrupos();
-                    //enviaMensagemGrupo();
-                    break;
-                }
-                case (6):{
-                    System.out.println("Sobre");
-                    break;
-                }
-                case (7):{
-                    System.out.println("Bye bye...");
-                    sair = true;
-                    ficarOffline();
-                    break;
-                }
-                default:{
-                    System.out.println("Opção inválida!");
-                    break;
+
+            opcao = leNumeroTeclado();
+
+            if (opcao != null){
+                switch (opcao){
+                    case (1):{
+                        //System.out.println("Ficar on-line");
+                        conecta();
+                        break;
+                    }
+                    case (2):{
+                        mudarApelido();
+                        break;
+                    }
+                    case (3):{
+                        //System.out.println("Ver lista de contatos");
+                        verAmigosOnline();
+                        break;
+                    }
+                    case (4):{
+                        //System.out.println("Enviar mensagem para um amigo");
+                        enviaMensagemAmigo();
+                        //escolheAmigo();
+                        break;
+                    }
+                    case (5):{
+                        menuGrupos();
+                        //enviaMensagemGrupo();
+                        break;
+                    }
+                    case (6):{
+                        System.out.println("Sobre");
+                        break;
+                    }
+                    case (7):{
+                        System.out.println("Bye bye...");
+                        sair = true;
+                        ficarOffline();
+                        break;
+                    }
+                    default:{
+                        System.out.println("Opção inválida!");
+                        break;
+                    }
                 }
             }
+
         }
     }
 
@@ -547,7 +644,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             switch (opcao) {
                 case (1): {
                     //System.out.println("");
-                    testaAnyCast();
+                    //testaAnyCast();
+                    criaGrupo();
                     break;
                 }
                 case (2): {
