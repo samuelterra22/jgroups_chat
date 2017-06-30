@@ -415,7 +415,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }
     }
 
-    public void enviaMensagemAmigo(Usuario amigo){
+    public void enviaMensagemAmigo(Usuario amigo){      // errado?
         if (getNumeroDeUsuariosOnline() > 1){
             if (isOnline() && nickDefinido()){
                 System.out.println("Conversa privada.");
@@ -590,6 +590,24 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         return false;
     }
 
+    public void sobre(){
+        System.out.println("\n***  JGroups Chat v1.0  ***\n" +
+                "\n" +
+                "Sistema distribuído (SD) como um serviço de chat, \n" +
+                "inspirado em aplicativos populares como WhatsApp, \n" +
+                "Telegram e afins. \n" +
+                "\n" +
+                "O trabalho está em processo de desenvolvimento e ao \n" +
+                "ser finalizado, continuará sendo de código aberto. \n" +
+                "Qualquer estudo que venha ser feito apartir deste \n" +
+                "trabalho, os autores envolvidos devem ser devidamente \n" +
+                "referenciados.\n" +
+                "  \n" +
+                "  \n" +
+                "Autores:\n" +
+                "        Matheus Calixto, Samuel Terra\n");
+    }
+
     public void detalhesGrupo(){
 
         List<Grupo> grupos = new ArrayList<>(listaDeGrupos.values());
@@ -667,12 +685,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                         break;
                     }
                     case (3):{
-                        //System.out.println("Ver lista de contatos");
                         verAmigosOnline();
                         break;
                     }
                     case (4):{
-                        //System.out.println("Enviar mensagem para um amigo");
                         enviaMensagemAmigo();
                         //escolheAmigo();
                         break;
@@ -683,7 +699,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                         break;
                     }
                     case (6):{
-                        System.out.println("Sobre");
+                        sobre();
                         break;
                     }
                     case (7):{
@@ -709,11 +725,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("Selecione uma opção:\n\n");
         menuPrincipal.append("1. Criar grupo\n");
         menuPrincipal.append("2. Ver grupos\n");
-        menuPrincipal.append("3. Apagar grupo\n");
-        menuPrincipal.append("4. Renomear grupo\n");
-        menuPrincipal.append("5. Adicionar amigo ao grupo\n");
-        menuPrincipal.append("6. Detalhes de um grupo\n");
-        menuPrincipal.append("7. Voltar\n\n");
+        menuPrincipal.append("3. Enviar mensagem a um grupo\n");
+        menuPrincipal.append("4. Apagar grupo\n");
+        menuPrincipal.append("5. Renomear grupo\n");
+        menuPrincipal.append("6. Adicionar amigo ao grupo\n");
+        menuPrincipal.append("7. Detalhes de um grupo\n");
+        menuPrincipal.append("8. Voltar\n\n");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         int opcao = 0;
@@ -749,10 +766,14 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     break;
                 }
                 case (6): {
-                    detalhesGrupo();
+                    //System.out.println("");
                     break;
                 }
                 case (7): {
+                    detalhesGrupo();
+                    break;
+                }
+                case (8): {
                     System.out.println("Voltando ao menu principal...");
                     sair = true;
                     break;
