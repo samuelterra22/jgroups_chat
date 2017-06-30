@@ -15,6 +15,7 @@ import org.jgroups.util.RspList;
 import org.jgroups.util.Util;
 
 import java.io.*;
+import java.security.Guard;
 import java.util.*;
 
 public class Principal extends ReceiverAdapter implements RequestHandler {
@@ -31,6 +32,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     private MessageDispatcher despachante;
 
     final Map<String, Address> listaDeContatos = new HashMap<String, Address>();
+    final Map<String, Grupo> listaDeGrupos     = new HashMap<String, Grupo>();
+
     final List<String> state = new LinkedList<String>();
 
     /* variáveis da classe */
@@ -216,6 +219,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
 
         listaDeContatos.putAll(p.getListaDeContatos());
+        listaDeGrupos.putAll(p.getListDeGrupos());
 
         synchronized (state) {
             state.add(msgChat.getMensagem());
@@ -232,6 +236,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
             listaDeContatos.putAll(p.getListaDeContatos());
+            listaDeGrupos.putAll(p.getListDeGrupos());
         }
         /*else if(p.getTag() == Tag.MENSAGEM_UNICAST){
             if (!conversando){
@@ -252,6 +257,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
 
             listaDeContatos.putAll(p.getListaDeContatos());
+            listaDeGrupos.putAll(p.getListDeGrupos());
 
             synchronized (state) {
                 state.add(msgChat.getMensagem());
@@ -269,7 +275,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     public void altualizaListaDeContatos() {
 
-        Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
+        Pacote pacote = new Pacote(null, listaDeContatos, listaDeGrupos, Tag.ATUALIZA_CONTATOS);
         Message message = new Message(null, pacote);
         try {
             System.out.println("Atualizando lista de contatos...");
@@ -543,8 +549,84 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         // define o coordenador como quem esta criando o grupo
         grupo.setCoordenador(eu);
 
+        // adiciona o coordenador no grupo tbm
+        grupo.adicionaUsuario(eu);
+
+        // adiciona o grupo na lista de grupos
+        this.listaDeGrupos.put(eu.getNickname(), grupo);
+
+        System.out.println("Grupo '"+nomeGrupo+"' criado com sucesso!");
+
+        altualizaListaDeContatos();
+
         // retorna o grupo
         return grupo;
+    }
+
+    public void verGrupos(){
+
+        System.out.println("Foram encontrados "+listaDeGrupos.size()+" grupo(s)");
+
+        List<Grupo> grupos = new ArrayList<>(listaDeGrupos.values());
+
+        for (Grupo grupo : grupos) {
+            System.out.print("Nome: "+grupo.getNome() + " Coord. -> " +grupo.getCoordenador().getNickname());
+            if (pertenceAoGrupo(eu, grupo))
+                System.out.println(" (Você pertence a este grupo)");
+            else
+                System.out.println();
+        }
+    }
+
+    public boolean pertenceAoGrupo(Usuario usuario, Grupo grupo){
+
+        List<Usuario> list = grupo.getUsuarios();
+
+        for (Usuario u : list) {
+            if (Objects.equals(u.getNickname(), usuario.getNickname()))
+                return true;
+        }
+
+        return false;
+    }
+
+    public void detalhesGrupo(){
+
+        List<Grupo> grupos = new ArrayList<>(listaDeGrupos.values());
+        Integer op;
+
+        while (true){
+            System.out.println("Selecione um grupo para ver detalhes: (Informa '-1' para sair)");
+
+            // printa os amigos
+            for (int i=0; i < grupos.size(); i++) {
+                System.out.println("("+i+") "+grupos.get(i).getNome());
+            }
+            op = leNumeroTeclado();
+            if (op != null){
+                if ((op >= 0)&&(op < grupos.size())){
+
+                    System.out.println("=======================================================");
+                    System.out.println("Nome:               "+grupos.get(op).getNome());
+                    System.out.println("Coordenador:        "+grupos.get(op).getCoordenador().getNickname());
+                    System.out.println("Numero de amigos:   "+grupos.get(op).getUsuarios().size());
+                    System.out.println("=======================================================");
+
+                    for (Usuario u : grupos.get(op).getUsuarios()) {
+                        System.out.println(u.getNickname() +" -> "+ u.getAddress());
+                    }
+
+                    System.out.println("=======================================================");
+
+                }else if(op == -1){
+                    // sai do menu de escolha de amigos
+                    break;
+                }
+                else {
+                    System.out.println("Opção inválida");
+                }
+            }
+        }
     }
 
     public void menuPrincipal() throws Exception {
@@ -626,10 +708,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("\n***   Gerenciar Grupos  ***\n");
         menuPrincipal.append("Selecione uma opção:\n\n");
         menuPrincipal.append("1. Criar grupo\n");
-        menuPrincipal.append("2. Apagar grupo\n");
-        menuPrincipal.append("3. Renomear grupo\n");
-        menuPrincipal.append("4. Adicionar amigo ao grupo\n");
-        menuPrincipal.append("5. Voltar\n\n");
+        menuPrincipal.append("2. Ver grupos\n");
+        menuPrincipal.append("3. Apagar grupo\n");
+        menuPrincipal.append("4. Renomear grupo\n");
+        menuPrincipal.append("5. Adicionar amigo ao grupo\n");
+        menuPrincipal.append("6. Detalhes de um grupo\n");
+        menuPrincipal.append("7. Voltar\n\n");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         int opcao = 0;
@@ -643,13 +727,13 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             opcao = Integer.parseInt(in.readLine());
             switch (opcao) {
                 case (1): {
-                    //System.out.println("");
                     //testaAnyCast();
                     criaGrupo();
                     break;
                 }
                 case (2): {
                     //System.out.println("");
+                    verGrupos();
                     break;
                 }
                 case (3): {
@@ -661,6 +745,14 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     break;
                 }
                 case (5): {
+                    //System.out.println("");
+                    break;
+                }
+                case (6): {
+                    detalhesGrupo();
+                    break;
+                }
+                case (7): {
                     System.out.println("Voltando ao menu principal...");
                     sair = true;
                     break;
@@ -676,7 +768,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     private void enviaUnicast(Usuario destinatario, Usuario remetente, String conteudo) throws Exception{
 
-        Message msg = new CriaMensagem().criaUnicast(destinatario, remetente, conteudo, getTime(), listaDeContatos);
+        Message msg = new CriaMensagem().criaUnicast(destinatario, remetente, conteudo, getTime(), listaDeContatos, listaDeGrupos);
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
@@ -704,7 +796,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         Collection<Address> grupo = g.getEnderecos();
 
-        Pacote p = new Pacote(new Mensagem(null, eu, "teste", getTime()), listaDeContatos, Tag.MENSAGEM_ANYCAST);
+        Pacote p = new Pacote(new Mensagem(null, eu, "teste", getTime()), listaDeContatos, listaDeGrupos, Tag.MENSAGEM_ANYCAST);
 
         //Message mensagem = new Message(null, "{ ANYCAST } " + conteudo); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
         Message mensagem = new Message(null, p); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados

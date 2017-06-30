@@ -83,9 +83,9 @@ public class UsuarioChat extends ReceiverAdapter {
                 if (line.startsWith("add user"))
                     System.out.println("Adicionar novo usuario");
 
-                Message msg = new CriaMensagem().criaMulticast(/*nickname*/null, line, getTime(), listaDeContatos);
+                //Message msg = new CriaMensagem().criaMulticast(/*nickname*/null, line, getTime(), listaDeContatos, lis);
 
-                canal.send(msg);
+                //canal.send(msg);
 
             } catch (Exception e) {
                 System.out.println("Erro: " + e.getMessage());
@@ -155,11 +155,11 @@ public class UsuarioChat extends ReceiverAdapter {
 
     public void altualizaListaDeContatos() {
         //Tag.MENSAGEM_MULTCAST
-        Pacote pacote = new Pacote(null, listaDeContatos, Tag.ATUALIZA_CONTATOS);
-        Message message = new Message(null, pacote);
+       // Pacote pacote = new Pacote(null, listaDeContatos, lis Tag.ATUALIZA_CONTATOS);
+        //Message message = new Message(null, pacote);
         try {
             //canal.send(message);
-            sendMultCast(message);
+         //   sendMultCast(message);
         } catch (Exception e) {
             e.printStackTrace();
         }
