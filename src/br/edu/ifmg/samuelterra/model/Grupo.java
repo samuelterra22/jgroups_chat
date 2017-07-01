@@ -82,3 +82,6 @@ public class Grupo implements Serializable {
                 '}';
     }
 }
+
+
+//keytool -genseckey -alias myKey -keypass changeit -storepass changeit -keyalg Blowfish -keysize 56 -keystore defaultStore.keystore -storetype JCEKS

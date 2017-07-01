@@ -26,7 +26,7 @@ public class CriaMensagem implements Serializable {
 
     public Message criaMulticast(Usuario remetente, String conteudo, String hora, Map<String, Address> listaDeContatos, Map<String, Grupo> listaDeGrupos) {//multicast
         Mensagem msg = new Mensagem(null, remetente, conteudo, hora);
-        Pacote pacote = new Pacote(msg, listaDeContatos, listaDeGrupos, Tag.MENSAGEM_MULTCAST);
+        Pacote pacote = new Pacote(msg, listaDeContatos, listaDeGrupos, null, Tag.MENSAGEM_MULTCAST, null);
 
         //this.pacoteMulti.setSrc(remetente.getAddress());
         this.pacoteMulti.setDest(null);//multicast
@@ -39,7 +39,7 @@ public class CriaMensagem implements Serializable {
     public Message criaUnicast(Usuario destinatario, Usuario remetente,  String conteudo, String hora, Map<String, Address> listaDeContatos, Map<String, Grupo> listaDeGrupos) {//unicast
 
         Mensagem msg = new Mensagem(destinatario, remetente, conteudo, hora);
-        Pacote pacote = new Pacote(msg, listaDeContatos, listaDeGrupos,Tag.MENSAGEM_UNICAST);
+        Pacote pacote = new Pacote(msg, listaDeContatos, listaDeGrupos, null, Tag.MENSAGEM_UNICAST, null);
 
         this.pacoteUni.setSrc(remetente.getAddress());
         this.pacoteUni.setDest(destinatario.getAddress());
