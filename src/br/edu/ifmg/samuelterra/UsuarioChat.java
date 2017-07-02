@@ -1,7 +1,6 @@
 package br.edu.ifmg.samuelterra;
 
 
-import br.edu.ifmg.samuelterra.controller.CriaMensagem;
 import br.edu.ifmg.samuelterra.controller.Usuario;
 import br.edu.ifmg.samuelterra.model.Mensagem;
 import br.edu.ifmg.samuelterra.model.Pacote;
@@ -126,7 +125,7 @@ public class UsuarioChat extends ReceiverAdapter {
 
         Pacote p = (Pacote) pacote.getObject();
 
-        if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
+        if (p.getTag() == Tag.ATUALIZA_DADOS) {
             listaDeContatos.putAll(p.getListaDeContatos());
         } else {
             Mensagem msg = p.getMensagem();
@@ -155,7 +154,7 @@ public class UsuarioChat extends ReceiverAdapter {
 
     public void altualizaListaDeContatos() {
         //Tag.MENSAGEM_MULTCAST
-       // Pacote pacote = new Pacote(null, listaDeContatos, lis Tag.ATUALIZA_CONTATOS);
+       // Pacote pacote = new Pacote(null, listaDeContatos, lis Tag.ATUALIZA_DADOS);
         //Message message = new Message(null, pacote);
         try {
             //canal.send(message);

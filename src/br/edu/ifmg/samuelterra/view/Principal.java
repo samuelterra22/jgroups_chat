@@ -139,7 +139,11 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (nickDefinido()){
                 if (!nickExiste()){
                     System.out.println("Você não está online, conectando...");
-                    canal = new JChannel();
+                    canal = new JChannel("chat2.xml");  //achou
+                    //canal = new JChannel("xmls/udp.xml"); //achou
+                    //canal = new JChannel("xmls/mping.xml"); //achou
+                    //canal = new JChannel("xmls/udp-largecluster.xml"); //achou
+                    //canal = new JChannel("xmls/toa.xml");  //achou
 
                     despachante = new MessageDispatcher(canal, null, null, this);
                     despachante.setRequestHandler(this);
@@ -149,13 +153,15 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     canal.setReceiver(this);
                     canal.connect("JChat");
 
+
+
                     this.meuEndereco = canal.getAddress();
                     this.eu = new Usuario(this.nickname, meuEndereco);
                     canal.getState(null, 10000);
 
                     listaDeContatos.put(nickname, meuEndereco);
 
-                    altualizaDados();
+                    atualizaDados();
                 }else {
                     System.out.println("O apelido definido escolhido já está em uso. Escolha outro e tente novamente.");
                 }
@@ -200,20 +206,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         System.out.println("DEBUG Handle: Tag: "+p.getTag());
 
-        /*if(p.getTag() == Tag.MENSAGEM_UNICAST){
-            if (!conversando){
-                Usuario amigo = msgChat.getDestinatario();
-                enviaMensagemAmigo(amigo);
-                conversando = true;
-            }else{
-                System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
-            }
-        }else {
-            System.out.println("["+msgChat.getHora()+"]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
-        }*/
-
         // mostra a mensagem recebida
-        mostraMensagemRecebida(msgChat);
+        mostraMensagemRecebida(p);
 
         listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
 
@@ -236,7 +230,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         System.out.println("DEBUG Receive: Tag: "+p.getTag());
 
-        if (p.getTag() == Tag.ATUALIZA_CONTATOS) {
+        if (p.getTag() == Tag.ATUALIZA_DADOS) {
             listaDeContatos.putAll(p.getListaDeContatos());
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
@@ -244,7 +238,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         else if (p.getTag() == Tag.MENSAGEM_ANYCAST){
             Mensagem msgChat = p.getMensagem();
 
-            mostraMensagemRecebida(msgChat);
+            mostraMensagemRecebida(p);
 
             listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
 
@@ -261,7 +255,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }else {
             Mensagem msgChat = p.getMensagem();
 
-            mostraMensagemRecebida(msgChat);
+            mostraMensagemRecebida(p);
 
             listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
 
@@ -284,23 +278,33 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         }//saiu algum membro
 
+        System.out.println("DEBUG: View modificada.");
+
         /* printa na tela informado ao grupo que um novo usuário está na conversa */
-        altualizaDados();
+        atualizaDados();
     }
 
-    public void mostraMensagemRecebida(Mensagem mensagem){
+    public void mostraMensagemRecebida(Pacote pacote){
+
+        Mensagem mensagem = pacote.getMensagem();
+
+        if (pacote.getGrupo()!=null){
+            System.out.print("("+pacote.getGrupo().getNome()+")");
+        }else{
+            System.out.println("(Privado)");
+        }
         System.out.print("["+mensagem.getHora()+"]");
         if (mensagem.getRemetente().getAddress().equals(eu.getAddress())){
-            System.out.print("Você: " );
+            System.out.print(" Você: " );
         }else{
             System.out.print( mensagem.getRemetente().getNickname() + ": " );
         }
         System.out.println( mensagem.getMensagem());
     }
 
-    public void altualizaDados() {
+    public void atualizaDados() {
 
-        Pacote pacote = new Pacote(null, listaDeContatos, listaDeGrupos, conversas, Tag.ATUALIZA_CONTATOS, null);
+        Pacote pacote = new Pacote(null, listaDeContatos, listaDeGrupos, conversas, Tag.ATUALIZA_DADOS, null);
         Message message = new Message(null, pacote);
         try {
             System.out.println("Atualizando base dados...");
@@ -436,7 +440,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                                 break;
                             }
 
-                            System.out.println("["+getTime()+"]" + eu.getNickname() + ": " +line);
+                            //System.out.println("["+getTime()+"]" + eu.getNickname() + ": " +line);
                             enviaAnycast(grupo,line);
                             //salvaHistoricoOffline(grupo , "["+getTime()+"]" + eu.getNickname() + ": " +line);
 
@@ -559,11 +563,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         grupo.adicionaUsuario(eu);
 
         // adiciona o grupo na lista de grupos
-        this.listaDeGrupos.put(eu.getNickname(), grupo);
+        //this.listaDeGrupos.put(eu.getNickname(), grupo);
+        this.listaDeGrupos.put(nomeGrupo, grupo);
 
         System.out.println("Grupo '"+nomeGrupo+"' criado com sucesso!");
 
-        altualizaDados();
+        atualizaDados();
 
         // retorna o grupo
         return grupo;
@@ -594,6 +599,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }
 
         return false;
+    }
+
+    public boolean ehCoordenadorDoGrupo(Usuario usuario, Grupo grupo){
+
+        return Objects.equals(usuario.getNickname(), grupo.getCoordenador().getNickname());
+
     }
 
     public void sobre(){
@@ -698,6 +709,67 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             for (int i = 0; i < historicoDeUmaConversa.size(); i++){
                 System.out.println(historicoDeUmaConversa.get(i));
             }
+        }
+
+    }
+
+    public void apagaGrupo(){
+
+        // seleciona o grupo que deseja apagar
+        Grupo grupo = escolheGrupo();
+
+        // verifica se o usuario pertence ao grupo
+        if (pertenceAoGrupo(eu, grupo)){
+            // somente coordenador pode apagar o grupo
+            if (ehCoordenadorDoGrupo(eu, grupo)){
+                // apaga a grupo da hash de grupos
+                listaDeGrupos.remove(grupo.getNome());
+                // atualiza os dados
+                atualizaDados();
+                // apaga o historico do grupo
+                if (conversas.containsKey(grupo.getNome())){
+                    conversas.remove(grupo.getNome());
+                    System.out.println("Grupo "+grupo.getNome()+" removido com sucesso.");
+                }else{
+                    System.out.println("O grupo não possuia historico.");
+                }
+            }else{
+                System.out.println("Você não pode realizar essa operação porque não coordenados do grupo.");
+            }
+        }else{
+            System.out.println("Você não pertence a esse grupo.");
+        }
+
+    }
+
+    public void renomearGrupo(){
+
+        // seleciona o grupo que deseja apagar
+        Grupo grupo = escolheGrupo();
+
+        // verifica se o usuario pertence ao grupo
+        if (pertenceAoGrupo(eu, grupo)){
+            // somente coordenador pode apagar o grupo
+            if (ehCoordenadorDoGrupo(eu, grupo)){
+                // apaga a grupo da hash de grupos
+                listaDeGrupos.remove(grupo.getNome());
+
+                //grupo.setNome();
+
+                // atualiza os dados
+                atualizaDados();
+                // apaga o historico do grupo
+                if (conversas.containsKey(grupo.getNome())){
+                    conversas.remove(grupo.getNome());
+                    System.out.println("Grupo "+grupo.getNome()+" removido com sucesso.");
+                }else{
+                    System.out.println("O grupo não possuia historico.");
+                }
+            }else{
+                System.out.println("Você não pode realizar essa operação porque não coordenados do grupo.");
+            }
+        }else{
+            System.out.println("Você não pertence a esse grupo.");
         }
 
     }
@@ -813,6 +885,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                 }
                 case (4): {
                     //System.out.println("");
+                    apagaGrupo();
                     break;
                 }
                 case (5): {
