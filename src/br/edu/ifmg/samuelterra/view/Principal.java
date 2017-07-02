@@ -222,14 +222,15 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
 
+        listaDeContatos.put(eu.getNickname(), eu.getAddress());
         listaDeContatos.putAll(p.getListaDeContatos());
         listaDeGrupos.putAll(p.getListDeGrupos());
         conversas.putAll(p.getConversas());
 
         //synchronized (conversas) {
             //state.add(msgChat.getMensagem());
-            historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
-            conversas.put(p.getGrupo().getNome(), historico);
+        historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+        conversas.put(p.getGrupo().getNome(), historico);
         //}
 
             return null;
@@ -242,12 +243,14 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         System.out.println("DEBUG Receive: Tag: "+p.getTag());
 
         // limpa as hashs para serem sobre escritas com as que foram recebidas
-        listaDeContatos.clear();
-        listaDeGrupos.clear();
-        conversas.clear();
+
 
         if (p.getTag() == Tag.ATUALIZA_DADOS) {
+            listaDeContatos.clear();
+            listaDeGrupos.clear();
+            conversas.clear();
 
+            //listaDeContatos.put(eu.getNickname(), eu.getAddress());
             listaDeContatos.putAll(p.getListaDeContatos());
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
@@ -256,6 +259,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             Mensagem msgChat = p.getMensagem();
 
             mostraMensagemRecebida(p);
+
+            listaDeContatos.clear();
+            listaDeGrupos.clear();
+            conversas.clear();
+
+            //listaDeContatos.put(eu.getNickname(), eu.getAddress());
 
             listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
 
@@ -266,13 +275,19 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
           //  synchronized (conversas) {
                 //state.add(msgChat.getMensagem());
 
-                historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
-                conversas.put(p.getGrupo().getNome(), historico);
+            historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+            conversas.put(p.getGrupo().getNome(), historico);
           //  }
         }else {
             Mensagem msgChat = p.getMensagem();
 
             mostraMensagemRecebida(p);
+
+            listaDeContatos.clear();
+            listaDeGrupos.clear();
+            conversas.clear();
+
+            //listaDeContatos.put(eu.getNickname(), eu.getAddress());
 
             listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
 
@@ -381,7 +396,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         if (grupos.size() > 0){
             while (grupo == null){
-                System.out.println("Selecione um grupo para enviar mensagens:");
+                System.out.println("Selecione um grupo:");
                 for (int i=0; i < grupos.size(); i++) {
                     System.out.println("("+i+") "+listaDeGrupos.get(grupos.get(i)).getNome()+" -> Coordenador:"+ listaDeGrupos.get(grupos.get(i)).getCoordenador().getNickname());
                 }
@@ -410,12 +425,47 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         String op;
 
         while (amigo == null){
-            System.out.println("Selecione um amigo para enviar mensagens:");
+            System.out.println("Selecione um amigo:");
             for (int i=0; i < listaDeNicks.size(); i++) {
                 if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())){
                     System.out.println("("+i+") "+ listaDeNicks.get(i)+" (Você)");
                 }else {
                     System.out.println("("+i+") "+ listaDeNicks.get(i));
+                }
+            }
+            op = leTextoTeclado();
+            if (op != null){
+                if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
+                    amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)),
+                            listaDeContatos.get(listaDeNicks.get(Integer.parseInt(op))));
+                }else {
+                    System.out.println("Opção inválida");
+                }
+            }
+        }
+        System.out.println("Retornando: "+amigo.getNickname());
+        return amigo;
+    }
+
+    public Usuario escolheAmigoParaAddNoGrupo(Grupo grupo){
+
+        List<String> listaDeNicks = new ArrayList<>();
+        listaDeNicks.addAll(listaDeContatos.keySet());
+        Usuario amigo = null;
+        String op;
+
+        while (amigo == null){
+            System.out.println("Selecione um amigo:");
+            for (int i=0; i < listaDeNicks.size(); i++) {
+                if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())){
+                    System.out.println("("+i+") "+ listaDeNicks.get(i)+" (Você)");
+                }else {
+                    Usuario u = new Usuario(listaDeNicks.get(i), listaDeContatos.get(listaDeNicks.get(i)));
+                    if (grupo.contemUsuario(u)) {
+                        System.out.println("(" + i + ") " + listaDeNicks.get(i)+" (Já pertence)");
+                    }else{
+                        System.out.println("(" + i + ") " + listaDeNicks.get(i));
+                    }
                 }
             }
             op = leTextoTeclado();
@@ -842,10 +892,37 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     }
 
+    /**
+     * método reponsável por adicionar um novo usuário no grupo
+     * */
     public void adicionaAmigoNoGrupo(){
+
+        Grupo grupo = escolheGrupo();
+
+        if (grupo != null){
+            if (ehCoordenadorDoGrupo(eu, grupo)){
+                Usuario usuario = escolheAmigoParaAddNoGrupo(grupo);
+
+                if (!grupo.contemUsuario(usuario)){
+                    grupo = listaDeGrupos.remove(grupo.getNome());
+                    grupo.adicionaUsuario(usuario);
+                    listaDeGrupos.put(grupo.getNome(), grupo);
+
+                    atualizaDados();
+                }else{
+                    System.out.println("Usuário já pertence ao grupo.");
+                }
+
+            }else{
+                System.out.println("Apenas coordenadores podem adicionar novos usuários ao grupo.");
+            }
+        }
 
     }
 
+    /**
+     * Método que representa o menu principal do chat
+     * */
     public void menuPrincipal() throws Exception {
 
         StringBuffer menuPrincipal = new StringBuffer();
@@ -916,6 +993,9 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }
     }
 
+    /**
+     * Método que representa o menu de gerenciamento de grupos do chat
+     * */
     public void menuGrupos() throws Exception {
         StringBuffer menuPrincipal = new StringBuffer();
         menuPrincipal.append("\n***  JGroups Chat v1.0  ***\n");
@@ -932,7 +1012,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("9. Voltar\n\n");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        int opcao = 0;
+        Integer opcao = 0;
         boolean sair = false;
 
         while (!sair) {
@@ -940,49 +1020,53 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             System.out.println("Status: " + isConectado());
             System.out.println("Apelido: " + getNickname());
             System.out.flush();
-            opcao = Integer.parseInt(in.readLine());
-            switch (opcao) {
-                case (1): {
-                    //testaAnyCast();
-                    criaGrupo();
-                    break;
-                }
-                case (2): {
-                    verGrupos();
-                    break;
-                }
-                case (3): {
-                    enviaMensagemGrupo();
-                    break;
-                }
-                case (4): {
-                    apagaGrupo();
-                    break;
-                }
-                case (5): {
-                    renomearGrupo();
-                    break;
-                }
-                case (6): {
-                    adicionaAmigoNoGrupo();
-                    break;
-                }
-                case (7): {
-                    detalhesGrupo();
-                    break;
-                }
-                case (8): {
-                    verHistoricoDeTodasConversas();
-                    break;
-                }
-                case (9): {
-                    System.out.println("Voltando ao menu principal...");
-                    sair = true;
-                    break;
-                }
-                default: {
-                    System.out.println("Opção inválida!");
-                    break;
+
+            opcao = leNumeroTeclado();
+
+            if (opcao != null){
+                switch (opcao) {
+                    case (1): {
+                        //testaAnyCast();
+                        criaGrupo();
+                        break;
+                    }
+                    case (2): {
+                        verGrupos();
+                        break;
+                    }
+                    case (3): {
+                        enviaMensagemGrupo();
+                        break;
+                    }
+                    case (4): {
+                        apagaGrupo();
+                        break;
+                    }
+                    case (5): {
+                        renomearGrupo();
+                        break;
+                    }
+                    case (6): {
+                        adicionaAmigoNoGrupo();
+                        break;
+                    }
+                    case (7): {
+                        detalhesGrupo();
+                        break;
+                    }
+                    case (8): {
+                        verHistoricoDeTodasConversas();
+                        break;
+                    }
+                    case (9): {
+                        System.out.println("Voltando ao menu principal...");
+                        sair = true;
+                        break;
+                    }
+                    default: {
+                        System.out.println("Opção inválida!");
+                        break;
+                    }
                 }
             }
         }

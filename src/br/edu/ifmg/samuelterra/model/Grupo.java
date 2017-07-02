@@ -72,6 +72,15 @@ public class Grupo implements Serializable {
         return this.usuarios.size();
     }
 
+    public boolean contemUsuario(Usuario usuario){
+        for (Usuario u : usuarios) {
+            if (u.getAddress() == usuario.getAddress()){
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
         return "Grupo{" +
