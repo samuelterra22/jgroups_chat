@@ -1,7 +1,5 @@
 package br.edu.ifmg.samuelterra.model;
 
-import br.edu.ifmg.samuelterra.controller.Usuario;
-
 import java.io.Serializable;
 
 public class Mensagem implements Serializable {

@@ -1,7 +1,6 @@
 package br.edu.ifmg.samuelterra.model;
 
 
-import br.edu.ifmg.samuelterra.controller.Usuario;
 import org.jgroups.Address;
 
 import java.io.Serializable;

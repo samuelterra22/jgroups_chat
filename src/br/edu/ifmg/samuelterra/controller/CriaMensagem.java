@@ -1,14 +1,10 @@
 package br.edu.ifmg.samuelterra.controller;
 
-import br.edu.ifmg.samuelterra.model.Grupo;
-import br.edu.ifmg.samuelterra.model.Mensagem;
-import br.edu.ifmg.samuelterra.model.Pacote;
-import br.edu.ifmg.samuelterra.model.Tag;
+import br.edu.ifmg.samuelterra.model.*;
 import org.jgroups.Address;
 import org.jgroups.Message;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
 

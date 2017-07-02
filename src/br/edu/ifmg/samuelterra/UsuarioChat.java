@@ -1,7 +1,7 @@
 package br.edu.ifmg.samuelterra;
 
 
-import br.edu.ifmg.samuelterra.controller.Usuario;
+import br.edu.ifmg.samuelterra.model.Usuario;
 import br.edu.ifmg.samuelterra.model.Mensagem;
 import br.edu.ifmg.samuelterra.model.Pacote;
 import br.edu.ifmg.samuelterra.model.Tag;

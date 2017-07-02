@@ -1,4 +1,4 @@
-package br.edu.ifmg.samuelterra.controller;
+package br.edu.ifmg.samuelterra.model;
 
 
 import org.jgroups.Address;

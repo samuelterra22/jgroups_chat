@@ -1,7 +1,7 @@
 package br.edu.ifmg.samuelterra.view;
 
 import br.edu.ifmg.samuelterra.controller.CriaMensagem;
-import br.edu.ifmg.samuelterra.controller.Usuario;
+import br.edu.ifmg.samuelterra.model.Usuario;
 import br.edu.ifmg.samuelterra.model.Grupo;
 import br.edu.ifmg.samuelterra.model.Mensagem;
 import br.edu.ifmg.samuelterra.model.Pacote;
@@ -121,9 +121,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     public void ficarOffline(){
         listaDeContatos.remove(nickname);
-        canal.disconnect();
+        if (canal.isConnected()){
+            canal.disconnect();
+        }
         canal.close();
         canal = null;
+        salvaHistoricoOffline();
     }
 
     public Boolean nickExiste(){
@@ -134,6 +137,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         System.out.println(canal);
         System.out.println(isOnline());
+
+        //leHistoricoOffline();
 
         if (!isOnline()){
             if (nickDefinido()){
@@ -153,10 +158,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     canal.setReceiver(this);
                     canal.connect("JChat");
 
-
-
                     this.meuEndereco = canal.getAddress();
                     this.eu = new Usuario(this.nickname, meuEndereco);
+
+                    // obtem o nove estado do chat
                     canal.getState(null, 10000);
 
                     listaDeContatos.put(nickname, meuEndereco);
@@ -178,7 +183,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         }
     }
 
-    public void getState(OutputStream output) throws Exception {
+    /*public void getState(OutputStream output) throws Exception {
         synchronized (conversas) {
             Util.objectToStream(conversas, new DataOutputStream(output));
         }
@@ -195,7 +200,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         for (String str : hist.keySet()) {
             System.out.println(str);            //pode estar errado esse print
         }
-    }
+    }*/
 
     @Override
     public Object handle(Message message) throws Exception {
@@ -209,17 +214,23 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         // mostra a mensagem recebida
         mostraMensagemRecebida(p);
 
+
+        listaDeContatos.clear();
+        listaDeGrupos.clear();
+        conversas.clear();
+
+
         listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
 
         listaDeContatos.putAll(p.getListaDeContatos());
         listaDeGrupos.putAll(p.getListDeGrupos());
         conversas.putAll(p.getConversas());
 
-        synchronized (conversas) {
+        //synchronized (conversas) {
             //state.add(msgChat.getMensagem());
             historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
             conversas.put(p.getGrupo().getNome(), historico);
-        }
+        //}
 
             return null;
     }
@@ -230,7 +241,13 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         System.out.println("DEBUG Receive: Tag: "+p.getTag());
 
+        // limpa as hashs para serem sobre escritas com as que foram recebidas
+        listaDeContatos.clear();
+        listaDeGrupos.clear();
+        conversas.clear();
+
         if (p.getTag() == Tag.ATUALIZA_DADOS) {
+
             listaDeContatos.putAll(p.getListaDeContatos());
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
@@ -246,12 +263,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
 
-            synchronized (conversas) {
+          //  synchronized (conversas) {
                 //state.add(msgChat.getMensagem());
 
                 historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
                 conversas.put(p.getGrupo().getNome(), historico);
-            }
+          //  }
         }else {
             Mensagem msgChat = p.getMensagem();
 
@@ -271,14 +288,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     public void viewAccepted(View novaComposicaoCluster) {
         View composicaoAntigaCluster = canal.getView();
 
-        if( novaComposicaoCluster.size() > composicaoAntigaCluster.size() ){
 
-        }//aumentou algum membro
-        else if( novaComposicaoCluster.size() < composicaoAntigaCluster.size() ){
-
-        }//saiu algum membro
 
         System.out.println("DEBUG: View modificada.");
+        System.out.println("DEBUG: View atual: " + composicaoAntigaCluster);
 
         /* printa na tela informado ao grupo que um novo usuário está na conversa */
         atualizaDados();
@@ -430,6 +443,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                 if (grupo != null){
                     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
                     String line;
+
+                    // imprime as mensagens anteriores do grupo
+                    imprimeMensagensDoGrupo(grupo);
+
                     System.out.print("Use 'quit' ou 'exit' para sair da conversa.");
                     while (true) {
                         try {
@@ -581,7 +598,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         List<Grupo> grupos = new ArrayList<>(listaDeGrupos.values());
 
         for (Grupo grupo : grupos) {
-            System.out.print("Nome: "+grupo.getNome() + " Coord. -> " +grupo.getCoordenador().getNickname());
+            System.out.print("Nome: '"+grupo.getNome() + "' Coord. -> '" +grupo.getCoordenador().getNickname()+"'");
             if (pertenceAoGrupo(eu, grupo))
                 System.out.println(" (Você pertence a este grupo)");
             else
@@ -666,36 +683,45 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     public void salvaHistoricoOffline() {
 
-    }
-
-   // void getState(OutputStream output) throws Exception{
-        //o membro mais velho responde com o get
-        //aqui o coordenador do jgroups deve enviar (output.write) o estado do chat pelo stream
-   // }
-   // void setState(InputStream input) throws Exception{
-        //o novo membro chama o set
-        //aqui o novo membro do jgroups deve receber (intput.read) o estado do chat pelo stream
-    //}
-
-    public void verificaHistoricoSalvoGrupos(){
-
-        List<String> grupos = new ArrayList<>(listaDeGrupos.keySet());
-
-        for (String coordenador: grupos) {
-            String grupo = listaDeGrupos.get(coordenador).getNome();
-            File f = new File(grupo);
-            if(f.exists() && !f.isDirectory()) {
-                System.out.println("Existe conversas do grupo: " + grupo);
-            }else {
-                System.out.println("Nao existe arquivo de conversas LOCAL para o grupo: " + grupo);
-                //pede o conversas remoto
-
-            }
+        try {
+            File file = new File("historico_offline");
+            FileOutputStream f = new FileOutputStream(file);
+            ObjectOutputStream s = new ObjectOutputStream(f);
+            s.writeObject(conversas);
+            s.close();
+        }catch (IOException e){
+            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
 
     }
 
-    public void verHistoricos(){
+    public void leHistoricoOffline() {
+
+        try {
+            File file = new File("historico_offline");
+            FileInputStream f = new FileInputStream(file);
+            ObjectInputStream s = new ObjectInputStream(f);
+            HashMap<String, Object> fileObj2 = (HashMap<String, Object>) s.readObject();
+            s.close();
+
+            System.out.println(fileObj2);
+        }catch (IOException e){
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean verificaHistoricoSalvoGrupo(Grupo grupo){
+        return conversas.containsKey(grupo.getNome());
+    }
+
+    /**
+     * Método responsável por exibir o histórico de todos os grupos
+     * */
+    public void verHistoricoDeTodasConversas(){
 
         List<String> nomeDasConversas = new ArrayList<>(conversas.keySet());
 
@@ -711,6 +737,20 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             }
         }
 
+    }
+
+    /**
+     * Método responsável por verificar se um grupo existe
+     * */
+    public boolean grupoExiste(Grupo grupo){
+        return listaDeGrupos.containsKey(grupo.getNome());
+    }
+
+    /**
+     * Método responsável por verificar se um usuário existe
+     * */
+    public boolean usuarioExiste(Usuario usuario){
+        return listaDeContatos.containsKey(usuario.getNickname());
     }
 
     public void apagaGrupo(){
@@ -742,6 +782,9 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     }
 
+    /**
+     * Método responsável por renomear um grupo
+     * */
     public void renomearGrupo(){
 
         // seleciona o grupo que deseja apagar
@@ -751,26 +794,55 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         if (pertenceAoGrupo(eu, grupo)){
             // somente coordenador pode apagar o grupo
             if (ehCoordenadorDoGrupo(eu, grupo)){
-                // apaga a grupo da hash de grupos
-                listaDeGrupos.remove(grupo.getNome());
 
-                //grupo.setNome();
+                // remove e guarda o grupo e o historico das hashs
+                grupo = listaDeGrupos.remove(grupo.getNome());
+                List<String> c = conversas.remove(grupo.getNome());
+
+                String nomeGrupo = null;
+
+                System.out.println("Informe o novo nome do grupo.");
+                while(nomeGrupo == null){
+                    // obtem o novo nome do grupo
+                    nomeGrupo = leTextoTeclado();
+                }
+
+                // seta o nome do grupo para um novo nome
+                grupo.setNome(nomeGrupo);
+
+                // adiciona o grupo e a conversa com nomes novos novamente na hash
+                listaDeGrupos.put(grupo.getNome(), grupo);
+                conversas.put(nomeGrupo, c);
 
                 // atualiza os dados
                 atualizaDados();
-                // apaga o historico do grupo
-                if (conversas.containsKey(grupo.getNome())){
-                    conversas.remove(grupo.getNome());
-                    System.out.println("Grupo "+grupo.getNome()+" removido com sucesso.");
-                }else{
-                    System.out.println("O grupo não possuia historico.");
-                }
             }else{
                 System.out.println("Você não pode realizar essa operação porque não coordenados do grupo.");
             }
         }else{
             System.out.println("Você não pertence a esse grupo.");
         }
+    }
+
+    /**
+     * Método responsável por exibir o historico de conversar de um determinado grupo
+     * */
+    public void imprimeMensagensDoGrupo(Grupo grupo){
+
+        if (conversas.containsKey(grupo.getNome())){
+            List<String> mensagens = conversas.get(grupo.getNome());
+
+            for (String mensagem : mensagens) {
+                System.out.println(mensagem);
+            }
+
+        }else {
+            System.out.println("Não há mensagens anteriores.");
+        }
+
+    }
+
+    public void adicionaAmigoNoGrupo(){
 
     }
 
@@ -884,17 +956,15 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     break;
                 }
                 case (4): {
-                    //System.out.println("");
                     apagaGrupo();
                     break;
                 }
                 case (5): {
-                    //System.out.println("");
+                    renomearGrupo();
                     break;
                 }
                 case (6): {
-                    //System.out.println("");
-                    verificaHistoricoSalvoGrupos();
+                    adicionaAmigoNoGrupo();
                     break;
                 }
                 case (7): {
@@ -902,7 +972,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     break;
                 }
                 case (8): {
-                    verHistoricos();
+                    verHistoricoDeTodasConversas();
                     break;
                 }
                 case (9): {
