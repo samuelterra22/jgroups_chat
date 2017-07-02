@@ -422,7 +422,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         List<String> listaDeNicks = new ArrayList<>();
         listaDeNicks.addAll(listaDeContatos.keySet());
         Usuario amigo = null;
-        String op;
+        Integer op;
 
         while (amigo == null){
             System.out.println("Selecione um amigo:");
@@ -433,11 +433,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     System.out.println("("+i+") "+ listaDeNicks.get(i));
                 }
             }
-            op = leTextoTeclado();
+            op = leNumeroTeclado();
             if (op != null){
-                if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
-                    amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)),
-                            listaDeContatos.get(listaDeNicks.get(Integer.parseInt(op))));
+                if ((op >= 0)&&(op < listaDeNicks.size())){
+                    amigo = new Usuario(listaDeNicks.get(op), listaDeContatos.get(listaDeNicks.get(op)));
                 }else {
                     System.out.println("Opção inválida");
                 }
@@ -447,6 +446,39 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         return amigo;
     }
 
+    public Usuario escolheAmigoDoGrupo(Grupo grupo){
+
+        List<Usuario> list = new ArrayList<>(grupo.getUsuarios());
+
+        Usuario amigo = null;
+        Integer op;
+
+        while (amigo == null){
+            System.out.println("Selecione um amigo do grupo:");
+            for (int i = 0; i < list.size(); i++) {
+                if (listaDeContatos.get(list.get(i).getNickname()).equals(eu.getAddress())){
+                    System.out.println("("+i+") "+ list.get(i).getNickname()+" (Você)");
+                }else {
+                    System.out.println("("+i+") "+ list.get(i).getNickname());
+                }
+            }
+            op = leNumeroTeclado();
+            if (op != null){
+                if ((op >= 0)&&(op < list.size())){
+                    amigo = list.get(op);
+                }else {
+                    System.out.println("Opção inválida");
+                }
+            }
+        }
+
+        System.out.println("Retornando: "+amigo.getNickname());
+        return amigo;
+    }
+
+    /**
+     * Motodo para retornar um amigo que nao ainda nao pertença ao grupo
+     * */
     public Usuario escolheAmigoParaAddNoGrupo(Grupo grupo){
 
         List<String> listaDeNicks = new ArrayList<>();
@@ -887,7 +919,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             }
 
         }else {
-            System.out.println("Não há mensagens anteriores.");
+            System.out.println("Não há histórico de mensagens anteriores.");
         }
 
     }
@@ -908,6 +940,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     grupo.adicionaUsuario(usuario);
                     listaDeGrupos.put(grupo.getNome(), grupo);
 
+                    System.out.println("Amigo '"+usuario.getNickname()+"' adicionado ao grupo '"+grupo.getNome()+"'.");
+
                     atualizaDados();
                 }else{
                     System.out.println("Usuário já pertence ao grupo.");
@@ -918,6 +952,34 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             }
         }
 
+    }
+
+    public void mudarCoordenadorDoGrupo(){
+        Grupo grupo = escolheGrupo();
+
+        if (grupo != null){
+            if (ehCoordenadorDoGrupo(eu, grupo)){
+                Usuario usuario = escolheAmigoDoGrupo(grupo);
+
+                if (pertenceAoGrupo(usuario, grupo)){
+
+                    grupo = listaDeGrupos.remove(grupo.getNome());
+                    grupo.setCoordenador(usuario);
+                    listaDeGrupos.put(grupo.getNome(), grupo);
+
+                    System.out.println("Coordenador do grupo '"+grupo.getNome()+"' modficador.");
+                    System.out.println("O Coordenador agora é '"+usuario.getNickname()+"'");
+
+                    atualizaDados();
+
+                }else{
+                    System.out.println("Usuário não pertence ao grupo.");
+                }
+
+            }else{
+                System.out.println("Apenas coordenadores podem adicionar novos usuários ao grupo.");
+            }
+        }
     }
 
     /**
@@ -952,7 +1014,6 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (opcao != null){
                 switch (opcao){
                     case (1):{
-                        //System.out.println("Ficar on-line");
                         conecta();
                         break;
                     }
@@ -966,12 +1027,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     }
                     case (4):{
                         enviaMensagemAmigo();
-                        //escolheAmigo();
                         break;
                     }
                     case (5):{
                         menuGrupos();
-                        //enviaMensagemGrupo();
                         break;
                     }
                     case (6):{
@@ -1007,9 +1066,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("4. Apagar grupo\n");
         menuPrincipal.append("5. Renomear grupo\n");
         menuPrincipal.append("6. Adicionar amigo ao grupo\n");
-        menuPrincipal.append("7. Ver detalhes de um grupo\n");
-        menuPrincipal.append("8. Ver historicos\n");
-        menuPrincipal.append("9. Voltar\n\n");
+        menuPrincipal.append("7. Mudar coordenador de um grupo\n");
+        menuPrincipal.append("8. Ver detalhes de um grupo\n");
+        menuPrincipal.append("9. Ver historicos\n");
+        menuPrincipal.append("10. Voltar\n\n");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         Integer opcao = 0;
@@ -1026,7 +1086,6 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (opcao != null){
                 switch (opcao) {
                     case (1): {
-                        //testaAnyCast();
                         criaGrupo();
                         break;
                     }
@@ -1051,14 +1110,18 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                         break;
                     }
                     case (7): {
-                        detalhesGrupo();
+                        mudarCoordenadorDoGrupo();
                         break;
                     }
                     case (8): {
-                        verHistoricoDeTodasConversas();
+                        detalhesGrupo();
                         break;
                     }
                     case (9): {
+                        verHistoricoDeTodasConversas();
+                        break;
+                    }
+                    case (10): {
                         System.out.println("Voltando ao menu principal...");
                         sair = true;
                         break;
