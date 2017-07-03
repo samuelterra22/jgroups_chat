@@ -4,8 +4,7 @@ package br.edu.ifmg.samuelterra;
 import br.edu.ifmg.samuelterra.view.Principal;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 public class Main {
 
@@ -15,6 +14,7 @@ public class Main {
 
         Principal m = new Principal();
         m.menuPrincipal();
+
 
         /*HashMap<String, Object> fileObj = new HashMap<String, Object>();
 

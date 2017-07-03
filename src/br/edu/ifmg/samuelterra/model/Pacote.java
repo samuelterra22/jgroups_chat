@@ -11,14 +11,16 @@ public class Pacote implements Serializable {
 
     private Mensagem mensagem;
     private Map<String, Address> listaDeContatos;
+    private Map<Address, String> listaDeAddress;
     private Map<String, Grupo>  listDeGrupos;
     private Map<String, List<String>> conversas;
     private Tag tag;
     private Grupo grupo;
 
-    public Pacote(Mensagem mensagem, Map<String, Address> listaDeContatos, Map<String, Grupo>  listDeGrupos, Map<String, List<String>> conversas, Tag tag, Grupo grupo) {
+    public Pacote(Mensagem mensagem, Map<String, Address> listaDeContatos, Map<Address, String> listaDeAddress, Map<String, Grupo>  listDeGrupos, Map<String, List<String>> conversas, Tag tag, Grupo grupo) {
         this.mensagem = mensagem;
         this.listaDeContatos = listaDeContatos;
+        this.listaDeAddress = listaDeAddress;
         this.listDeGrupos = listDeGrupos;
         this.conversas = conversas;
         this.tag = tag;
@@ -71,5 +73,13 @@ public class Pacote implements Serializable {
 
     public void setConversas(Map<String, List<String>> conversas) {
         this.conversas = conversas;
+    }
+
+    public Map<Address, String> getListaDeAddress() {
+        return listaDeAddress;
+    }
+
+    public void setListaDeAddress(Map<Address, String> listaDeAddress) {
+        this.listaDeAddress = listaDeAddress;
     }
 }

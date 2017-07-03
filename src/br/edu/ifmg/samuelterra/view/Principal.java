@@ -13,7 +13,6 @@ import org.jgroups.blocks.RequestHandler;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
 import org.jgroups.util.RspList;
-import org.jgroups.util.Util;
 
 import java.io.*;
 import java.util.*;
@@ -25,11 +24,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     private Usuario eu;
 
-    private String chatName;
-
     private MessageDispatcher despachante;
 
-    final Map<String, Address> listaDeContatos = new HashMap<String, Address>();
+    final Map<String, Address> nickToAddress = new HashMap<String, Address>();
+    //final Map<Address, String> addressToNick = new HashMap<Address, String>();
     final Map<String, Grupo> listaDeGrupos     = new HashMap<String, Grupo>();
 
     final Map<String, List<String>> conversas = new HashMap<String, List<String>>();
@@ -120,7 +118,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     }
 
     public void ficarOffline(){
-        listaDeContatos.remove(nickname);
+        nickToAddress.remove(nickname);
         if (canal.isConnected()){
             canal.disconnect();
         }
@@ -130,7 +128,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     }
 
     public Boolean nickExiste(){
-        return listaDeContatos.containsKey(nickname);
+        return nickToAddress.containsKey(nickname);
     }
 
     public void conecta() throws Exception {
@@ -144,9 +142,9 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (nickDefinido()){
                 if (!nickExiste()){
                     System.out.println("Você não está online, conectando...");
-                    canal = new JChannel("chat2.xml");  //achou
-                    //canal = new JChannel("xmls/udp.xml"); //achou
-                    //canal = new JChannel("xmls/mping.xml"); //achou
+                    canal = new JChannel("chat2.xml");      //achou
+                    //canal = new JChannel("xmls/udp.xml");       //achou
+                    //canal = new JChannel("xmls/mping.xml");     //achou
                     //canal = new JChannel("xmls/udp-largecluster.xml"); //achou
                     //canal = new JChannel("xmls/toa.xml");  //achou
 
@@ -164,7 +162,10 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     // obtem o nove estado do chat
                     canal.getState(null, 10000);
 
-                    listaDeContatos.put(nickname, meuEndereco);
+                    nickToAddress.put(nickname, meuEndereco);
+
+                    //addressToNick.put(meuEndereco, nickname);
+                    leHistoricoOffline();
 
                     atualizaDados();
                 }else {
@@ -215,26 +216,75 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         mostraMensagemRecebida(p);
 
 
-        listaDeContatos.clear();
+        nickToAddress.clear();
         listaDeGrupos.clear();
         conversas.clear();
 
 
-        listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
+        nickToAddress.put(msgChat.getRemetente().getNickname(), message.getSrc());
+        //addressToNick.put(message.getSrc(), msgChat.getRemetente().getNickname());
 
-        listaDeContatos.put(eu.getNickname(), eu.getAddress());
-        listaDeContatos.putAll(p.getListaDeContatos());
+        nickToAddress.put(eu.getNickname(), eu.getAddress());
+        //addressToNick.put(eu.getAddress(), eu.getNickname());
+
+
+        nickToAddress.putAll(p.getListaDeContatos());
+        //addressToNick.putAll(p.getListaDeAddress());
         listaDeGrupos.putAll(p.getListDeGrupos());
         conversas.putAll(p.getConversas());
 
         //synchronized (conversas) {
-            //state.add(msgChat.getMensagem());
-        historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
-        conversas.put(p.getGrupo().getNome(), historico);
-        //}
+        // state.add(msgChat.getMensagem());
 
+        // a mensagem veio de um grupo
+
+        if (p.getGrupo() != null) {
+            historico.add("[" + msgChat.getHora() + "]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+            conversas.put(p.getGrupo().getNome(), historico);
+        }else{
+            // a mensagem he unicast
+            guardaHistoricoUnicast(msgChat);
+        }
             return null;
     }
+
+
+    public void guardaHistoricoUnicast(Mensagem msgChat){
+
+        List<String> nomes = new ArrayList<>();
+        nomes.add(msgChat.getRemetente().getNickname());
+        nomes.add(msgChat.getDestinatario().getNickname());
+
+        Collections.sort(nomes);
+
+        String destinatario = nomes.get(0);
+        String remetente    = nomes.get(1);
+
+        String chave = destinatario+"_"+remetente;
+
+        historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
+        conversas.put(chave, historico);
+
+    }
+
+    public void guardaHistoricoUnicast(Usuario distinatario, Usuario remetente, String mensagem){
+
+        List<String> nomes = new ArrayList<>();
+        nomes.add(distinatario.getNickname());
+        nomes.add(distinatario.getNickname());
+
+        Collections.sort(nomes);
+
+        String dest = nomes.get(0);
+        String reme = nomes.get(1);
+
+        String chave = dest+"_"+reme;
+
+        historico.add(mensagem);
+        conversas.put(chave, historico);
+
+    }
+
 
     public void receive(Message msgJGroups) {
 
@@ -246,70 +296,95 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
 
         if (p.getTag() == Tag.ATUALIZA_DADOS) {
-            listaDeContatos.clear();
+            nickToAddress.clear();
             listaDeGrupos.clear();
             conversas.clear();
 
-            //listaDeContatos.put(eu.getNickname(), eu.getAddress());
-            listaDeContatos.putAll(p.getListaDeContatos());
+            //nickToAddress.put(eu.getNickname(), eu.getAddress());
+            nickToAddress.putAll(p.getListaDeContatos());
+            //addressToNick.putAll(p.getListaDeAddress());
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
+
+            salvaHistoricoOffline();
         }
         else if (p.getTag() == Tag.MENSAGEM_ANYCAST){
             Mensagem msgChat = p.getMensagem();
 
             mostraMensagemRecebida(p);
 
-            listaDeContatos.clear();
+            nickToAddress.clear();
             listaDeGrupos.clear();
             conversas.clear();
 
-            //listaDeContatos.put(eu.getNickname(), eu.getAddress());
+            //nickToAddress.put(eu.getNickname(), eu.getAddress());
 
-            listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
+            nickToAddress.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
+            //addressToNick.put(msgJGroups.getSrc(), msgChat.getRemetente().getNickname());
 
-            listaDeContatos.putAll(p.getListaDeContatos());
+            nickToAddress.putAll(p.getListaDeContatos());
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
 
-          //  synchronized (conversas) {
-                //state.add(msgChat.getMensagem());
+
+            System.out.println("DEBUG: receive -> Grupo: "+p.getGrupo().getNome());
 
             historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
             conversas.put(p.getGrupo().getNome(), historico);
-          //  }
+
         }else {
             Mensagem msgChat = p.getMensagem();
 
             mostraMensagemRecebida(p);
 
-            listaDeContatos.clear();
+            nickToAddress.clear();
             listaDeGrupos.clear();
             conversas.clear();
 
-            //listaDeContatos.put(eu.getNickname(), eu.getAddress());
+            //nickToAddress.put(eu.getNickname(), eu.getAddress());
 
-            listaDeContatos.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
+            nickToAddress.put(msgChat.getRemetente().getNickname(), msgJGroups.getSrc());
+            //addressToNick.put(msgJGroups.getSrc(), msgChat.getRemetente().getNickname());
 
-            listaDeContatos.putAll(p.getListaDeContatos());
+            nickToAddress.putAll(p.getListaDeContatos());
+            //addressToNick.putAll(p.getListaDeAddress());
             listaDeGrupos.putAll(p.getListDeGrupos());
             conversas.putAll(p.getConversas());
         }
 
         //System.out.println(getUsuariosOnline().size());
-        //System.out.println(listaDeContatos);
+        //System.out.println(nickToAddress);
     }
 
-    public void viewAccepted(View novaComposicaoCluster) {
-        View composicaoAntigaCluster = canal.getView();
-
-
+    public void viewAccepted(View view) {
 
         System.out.println("DEBUG: View modificada.");
-        System.out.println("DEBUG: View atual: " + composicaoAntigaCluster);
+        System.out.println("DEBUG: View atual: " + view);
+        System.out.println("DEBUG: View membros: " + view.getMembers());
+
+        atualizaOsContatos(view.getMembers());
 
         /* printa na tela informado ao grupo que um novo usuário está na conversa */
         atualizaDados();
+    }
+
+    public void atualizaOsContatos(List<Address> addresses){
+        Map<String, Address> novaListaDeContatos = new HashMap<String, Address>();
+        List<String> listaDeNicks = new ArrayList<>(nickToAddress.keySet());
+
+
+        System.out.println("DEBUG: nickToAddress: "+nickToAddress);
+        System.out.println("DEBUG: address: "+addresses);
+
+        for (Map.Entry<String, Address> e : nickToAddress.entrySet()) {
+            String key = e.getKey();
+            Address value = e.getValue();
+
+
+        }
+
+
+
     }
 
     public void mostraMensagemRecebida(Pacote pacote){
@@ -319,7 +394,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         if (pacote.getGrupo()!=null){
             System.out.print("("+pacote.getGrupo().getNome()+")");
         }else{
-            System.out.println("(Privado)");
+            System.out.print("(Privado)");
         }
         System.out.print("["+mensagem.getHora()+"]");
         if (mensagem.getRemetente().getAddress().equals(eu.getAddress())){
@@ -332,7 +407,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     public void atualizaDados() {
 
-        Pacote pacote = new Pacote(null, listaDeContatos, listaDeGrupos, conversas, Tag.ATUALIZA_DADOS, null);
+        Pacote pacote = new Pacote(null, nickToAddress, /*addressToNick*/null, listaDeGrupos,
+                conversas, Tag.ATUALIZA_DADOS, null);
         Message message = new Message(null, pacote);
         try {
             System.out.println("Atualizando base dados...");
@@ -350,12 +426,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     }
 
     public int getNumeroDeUsuariosOnline(){
-        return listaDeContatos.size();
+        return nickToAddress.size();
     }
 
     public List<String> getListaDeNicknames(){
         List<String> nicks = new ArrayList<>();
-        nicks.addAll(listaDeContatos.keySet());
+        nicks.addAll(nickToAddress.keySet());
         return nicks;
     }
 
@@ -363,7 +439,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         List<Usuario> usuarios = new ArrayList<>();
         List<String> nicks = getListaDeNicknames();
         for (String nick : nicks) {
-            usuarios.add(new Usuario(nick, listaDeContatos.get(nick)));
+            usuarios.add(new Usuario(nick, nickToAddress.get(nick)));
         }
         return usuarios;
     }
@@ -420,14 +496,14 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     public Usuario escolheAmigo(){
 
         List<String> listaDeNicks = new ArrayList<>();
-        listaDeNicks.addAll(listaDeContatos.keySet());
+        listaDeNicks.addAll(nickToAddress.keySet());
         Usuario amigo = null;
         Integer op;
 
         while (amigo == null){
             System.out.println("Selecione um amigo:");
             for (int i=0; i < listaDeNicks.size(); i++) {
-                if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())){
+                if (nickToAddress.get(listaDeNicks.get(i)).equals(eu.getAddress())){
                     System.out.println("("+i+") "+ listaDeNicks.get(i)+" (Você)");
                 }else {
                     System.out.println("("+i+") "+ listaDeNicks.get(i));
@@ -436,7 +512,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             op = leNumeroTeclado();
             if (op != null){
                 if ((op >= 0)&&(op < listaDeNicks.size())){
-                    amigo = new Usuario(listaDeNicks.get(op), listaDeContatos.get(listaDeNicks.get(op)));
+                    amigo = new Usuario(listaDeNicks.get(op), nickToAddress.get(listaDeNicks.get(op)));
                 }else {
                     System.out.println("Opção inválida");
                 }
@@ -456,7 +532,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         while (amigo == null){
             System.out.println("Selecione um amigo do grupo:");
             for (int i = 0; i < list.size(); i++) {
-                if (listaDeContatos.get(list.get(i).getNickname()).equals(eu.getAddress())){
+                if (nickToAddress.get(list.get(i).getNickname()).equals(eu.getAddress())){
                     System.out.println("("+i+") "+ list.get(i).getNickname()+" (Você)");
                 }else {
                     System.out.println("("+i+") "+ list.get(i).getNickname());
@@ -482,17 +558,17 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     public Usuario escolheAmigoParaAddNoGrupo(Grupo grupo){
 
         List<String> listaDeNicks = new ArrayList<>();
-        listaDeNicks.addAll(listaDeContatos.keySet());
+        listaDeNicks.addAll(nickToAddress.keySet());
         Usuario amigo = null;
         String op;
 
         while (amigo == null){
             System.out.println("Selecione um amigo:");
             for (int i=0; i < listaDeNicks.size(); i++) {
-                if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())){
+                if (nickToAddress.get(listaDeNicks.get(i)).equals(eu.getAddress())){
                     System.out.println("("+i+") "+ listaDeNicks.get(i)+" (Você)");
                 }else {
-                    Usuario u = new Usuario(listaDeNicks.get(i), listaDeContatos.get(listaDeNicks.get(i)));
+                    Usuario u = new Usuario(listaDeNicks.get(i), nickToAddress.get(listaDeNicks.get(i)));
                     if (grupo.contemUsuario(u)) {
                         System.out.println("(" + i + ") " + listaDeNicks.get(i)+" (Já pertence)");
                     }else{
@@ -504,7 +580,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (op != null){
                 if ((Integer.parseInt(op) >= 0)&&(Integer.parseInt(op) < listaDeNicks.size())){
                     amigo = new Usuario(listaDeNicks.get(Integer.parseInt(op)),
-                            listaDeContatos.get(listaDeNicks.get(Integer.parseInt(op))));
+                            nickToAddress.get(listaDeNicks.get(Integer.parseInt(op))));
                 }else {
                     System.out.println("Opção inválida");
                 }
@@ -536,6 +612,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                             System.out.flush();
                             line = in.readLine().toLowerCase();
                             if (line.startsWith("quit") || line.startsWith("exit")) {
+                                salvaHistoricoOffline();
                                 break;
                             }
 
@@ -565,6 +642,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
                 Usuario amigo = escolheAmigo();
 
+                imprimeMensagensConversa(eu, amigo);
+
                 BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
                 String line;
                 System.out.println("Use 'quit' ou 'exit' para sair da conversa.");
@@ -574,10 +653,12 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                         System.out.flush();
                         line = in.readLine().toLowerCase();
                         if (line.startsWith("quit") || line.startsWith("exit")) {
+                            salvaHistoricoOffline();
                             break;
                         }
 
                         System.out.println("["+getTime()+"]" + eu.getNickname() + ": " +line);
+                        guardaHistoricoUnicast(amigo, eu ,"["+getTime()+"]" + eu.getNickname() + ": " +line);
                         enviaUnicast(amigo, eu, line);
 
 
@@ -597,7 +678,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     public Grupo criaGrupo(){
 
         List<String> listaDeNicks = new ArrayList<>();
-        listaDeNicks.addAll(listaDeContatos.keySet());
+        listaDeNicks.addAll(nickToAddress.keySet());
 
         Grupo grupo = new Grupo();
 
@@ -612,7 +693,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             for (int i=0; i < listaDeNicks.size(); i++) {
                 // printa se nao tiver na lista de selecionado
                 if (!listaSelecionados.contains(listaDeNicks.get(i))) {
-                    if (listaDeContatos.get(listaDeNicks.get(i)).equals(eu.getAddress())) {
+                    if (nickToAddress.get(listaDeNicks.get(i)).equals(eu.getAddress())) {
                         System.out.println("(" + i + ") " + listaDeNicks.get(i) + " (Você)");
                     } else {
                         System.out.println("(" + i + ") " + listaDeNicks.get(i));
@@ -625,7 +706,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (op != null){
                 if ((op >= 0)&&(op < listaDeNicks.size())){
 
-                    if(listaDeContatos.get(listaDeNicks.get(op)).equals(eu.getAddress())){
+                    if(nickToAddress.get(listaDeNicks.get(op)).equals(eu.getAddress())){
                         System.out.println("Você não pode selecionar você mesmo.");
                     }else {
                         listaSelecionados.add(listaDeNicks.get(op));
@@ -643,7 +724,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         // adiciona usuarios selecionados ao grupo
         for (String u :listaSelecionados) {
-            grupo.adicionaUsuario(new Usuario(u, listaDeContatos.get(u)));
+            grupo.adicionaUsuario(new Usuario(u, nickToAddress.get(u)));
         }
 
         String nomeGrupo = null;
@@ -832,7 +913,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
      * Método responsável por verificar se um usuário existe
      * */
     public boolean usuarioExiste(Usuario usuario){
-        return listaDeContatos.containsKey(usuario.getNickname());
+        return nickToAddress.containsKey(usuario.getNickname());
     }
 
     public void apagaGrupo(){
@@ -925,6 +1006,36 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     }
 
     /**
+     * Método responsável por exibir o historico de conversar de um determinado grupo
+     * */
+    public void imprimeMensagensConversa (Usuario remetente, Usuario destinatario){
+
+        // a mensagem he unicast
+        List<String> nomes = new ArrayList<>();
+        nomes.add(remetente.getNickname());
+        nomes.add(destinatario.getNickname());
+
+        Collections.sort(nomes);
+
+        String dest = nomes.get(0);
+        String reme = nomes.get(1);
+
+        String chave = dest+"_"+reme;
+
+        if (conversas.containsKey(chave)){
+            List<String> mensagens = conversas.get(chave);
+
+            for (String mensagem : mensagens) {
+                System.out.println(mensagem);
+            }
+
+        }else {
+            System.out.println("Não há histórico de mensagens anteriores.");
+        }
+
+    }
+
+    /**
      * método reponsável por adicionar um novo usuário no grupo
      * */
     public void adicionaAmigoNoGrupo(){
@@ -999,7 +1110,6 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("6. Sobre\n");
         menuPrincipal.append("7. Sair\n\n");
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         Integer opcao = 0;
         boolean sair = false;
 
@@ -1071,7 +1181,6 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         menuPrincipal.append("9. Ver historicos\n");
         menuPrincipal.append("10. Voltar\n\n");
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         Integer opcao = 0;
         boolean sair = false;
 
@@ -1138,7 +1247,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     private void enviaUnicast(Usuario destinatario, Usuario remetente, String conteudo) throws Exception{
 
-        Message msg = new CriaMensagem().criaUnicast(destinatario, remetente, conteudo, getTime(), listaDeContatos, listaDeGrupos);
+        Message msg = new CriaMensagem().criaUnicast(destinatario, remetente, conteudo, getTime(), nickToAddress, /*addressToNick*/null, listaDeGrupos, conversas);
 
         RequestOptions opcoes = new RequestOptions();
         opcoes.setFlags(Message.Flag.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
@@ -1147,26 +1256,11 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         despachante.sendMessage(msg, opcoes); //UNICAST
     }
 
-    private void enviaMulticast(String conteudo) throws Exception{
-
-        Message mensagem=new Message(null, "{MULTICAST} "+conteudo);
-
-        RequestOptions opcoes = new RequestOptions();
-        opcoes.setFlags(Message.DONT_BUNDLE); // envia imediatamente, não agrupa várias mensagens numa só
-        opcoes.setMode(ResponseMode.GET_ALL); // espera receber a resposta de TODOS membros (ALL, MAJORITY, FIRST, NONE)
-
-        opcoes.setAnycasting(false);
-
-        RspList respList = despachante.castMessage(null, mensagem, opcoes); //MULTICAST
-        System.out.println("==> Respostas do cluster ao MULTICAST:\n" +respList+"\n");
-    }
-
-
     private void enviaAnycast(Grupo g, String conteudo) throws Exception{
 
         Collection<Address> grupo = g.getEnderecos();
 
-        Pacote p = new Pacote(new Mensagem(null, eu, conteudo, getTime()), listaDeContatos, listaDeGrupos, conversas, Tag.MENSAGEM_ANYCAST, g);
+        Pacote p = new Pacote(new Mensagem(null, eu, conteudo, getTime()), nickToAddress, /*addressToNick*/ null, listaDeGrupos, conversas, Tag.MENSAGEM_ANYCAST, g);
 
         //Message mensagem = new Message(null, "{ ANYCAST } " + conteudo); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
         Message mensagem = new Message(null, p); //apesar do endereço ser null, se as opcoes contiverem anycasting==true enviará somente aos destinos listados
