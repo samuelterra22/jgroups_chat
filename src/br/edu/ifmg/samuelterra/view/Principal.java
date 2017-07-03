@@ -180,8 +180,8 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
      * */
     public void conecta() throws Exception {
 
-        System.out.println(canal);
-        System.out.println(isOnline());
+        //System.out.println(canal);
+        //System.out.println(isOnline());
 
         //leHistoricoOffline();
 
@@ -250,16 +250,15 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         Mensagem msgChat = p.getMensagem();
 
-        System.out.println("DEBUG Handle: Tag: "+p.getTag());
+        //System.out.println("DEBUG Handle: Tag: "+p.getTag());
 
         // mostra a mensagem recebida
         mostraMensagemRecebida(p);
 
-
+        // limpa as hash para que possam ser atualziadas
         listaDeContatos.clear();
         listaDeGrupos.clear();
         conversas.clear();
-
 
         listaDeContatos.put(msgChat.getRemetente().getNickname(), message.getSrc());
 
@@ -271,7 +270,6 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
 
         // a mensagem veio de um grupo
-
         if (p.getGrupo() != null) {
             historico.add("[" + msgChat.getHora() + "]" + msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
             conversas.put(p.getGrupo().getNome(), historico);
@@ -331,7 +329,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
         Pacote p = (Pacote) msgJGroups.getObject();
 
-        System.out.println("DEBUG Receive: Tag: "+p.getTag());
+        //System.out.println("DEBUG Receive: Tag: "+p.getTag());
 
         // limpa as hashs para serem sobre escritas com as que foram recebidas
 
@@ -366,7 +364,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             conversas.putAll(p.getConversas());
 
 
-            System.out.println("DEBUG: receive -> Grupo: "+p.getGrupo().getNome());
+            //System.out.println("DEBUG: receive -> Grupo: "+p.getGrupo().getNome());
 
             historico.add("["+msgChat.getHora()+"]"+ msgChat.getRemetente().getNickname() + ": " + msgChat.getMensagem());
             conversas.put(p.getGrupo().getNome(), historico);
@@ -520,7 +518,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         Pacote pacote = new Pacote(null, listaDeContatos, listaDeGrupos, conversas, Tag.ATUALIZA_DADOS, null);
         Message message = new Message(null, pacote);
         try {
-            System.out.println("Atualizando base dados...");
+            //System.out.println("Atualizando base dados...");
             canal.send(message);
         } catch (Exception e) {
             e.printStackTrace();
@@ -614,7 +612,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                     }
                 }
             }
-            System.out.println("Retornando grupo do coordenador: "+grupo.getCoordenador());
+            //System.out.println("DEBUG: Retornando grupo do coordenador: "+grupo.getCoordenador());
             return grupo;
         }else{
             System.out.println("Não há grupos disponível.");
@@ -721,7 +719,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                 }
             }
         }
-        System.out.println("Retornando: "+amigo.getNickname());
+        //System.out.println("Retornando: "+amigo.getNickname());
         return amigo;
     }
 
@@ -1033,7 +1031,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             HashMap<String, Object> fileObj2 = (HashMap<String, Object>) s.readObject();
             s.close();
 
-            System.out.println(fileObj2);
+            //System.out.println(fileObj2);
         }catch (IOException e){
             System.out.println(e.getMessage());
             e.printStackTrace();
