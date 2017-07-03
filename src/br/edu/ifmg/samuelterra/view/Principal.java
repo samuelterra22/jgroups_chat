@@ -17,6 +17,10 @@ import org.jgroups.util.RspList;
 import java.io.*;
 import java.util.*;
 
+
+/***********************************************************************************************************************
+ *                                         JGroups Chat v1.0
+ **********************************************************************************************************************/
 public class Principal extends ReceiverAdapter implements RequestHandler {
 
     private String nickname = null;
@@ -119,6 +123,9 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
 
     public void ficarOffline(){
         nickToAddress.remove(nickname);
+
+        atualizaDados();
+
         if (canal.isConnected()){
             canal.disconnect();
         }
@@ -143,10 +150,6 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
                 if (!nickExiste()){
                     System.out.println("Você não está online, conectando...");
                     canal = new JChannel("chat2.xml");      //achou
-                    //canal = new JChannel("xmls/udp.xml");       //achou
-                    //canal = new JChannel("xmls/mping.xml");     //achou
-                    //canal = new JChannel("xmls/udp-largecluster.xml"); //achou
-                    //canal = new JChannel("xmls/toa.xml");  //achou
 
                     despachante = new MessageDispatcher(canal, null, null, this);
                     despachante.setRequestHandler(this);
@@ -362,28 +365,91 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
         System.out.println("DEBUG: View atual: " + view);
         System.out.println("DEBUG: View membros: " + view.getMembers());
 
+
+        //atualizaDados();
+
         atualizaOsContatos(view.getMembers());
 
         /* printa na tela informado ao grupo que um novo usuário está na conversa */
         atualizaDados();
+
     }
 
-    public void atualizaOsContatos(List<Address> addresses){
-        Map<String, Address> novaListaDeContatos = new HashMap<String, Address>();
-        List<String> listaDeNicks = new ArrayList<>(nickToAddress.keySet());
+    public void atualizaOsContatos(List<Address> listaAtual){
+
+        //Map<String, Address> novaListaDeContatos = new HashMap<String, Address>();
 
 
-        System.out.println("DEBUG: nickToAddress: "+nickToAddress);
-        System.out.println("DEBUG: address: "+addresses);
+        for (String nome : nickToAddress.keySet()) {
 
-        for (Map.Entry<String, Address> e : nickToAddress.entrySet()) {
-            String key = e.getKey();
-            Address value = e.getValue();
+            Address endereco = nickToAddress.get(nome);
 
+            if (!listaAtual.contains(endereco)){
+                nickToAddress.remove(nome);
+            }
 
         }
 
 
+
+/*
+        List<Address> minhaLista = new ArrayList<>(nickToAddress.values());
+        List<String> nickSairam = new ArrayList<>();
+
+
+        System.out.println("DEBUG: Lista atual: "+listaAtual);
+        System.out.println("DEBUG: Minha lista: "+minhaLista);
+
+
+        // saiu gente
+        if (listaAtual.size() < minhaLista.size()){
+
+            // percorre a lista desatualizada
+            for (int i = 0; i < minhaLista.size(); i++) {
+                // se a pessoa ta na minha lista e na lista atualizada, ela ainda ta online
+                if (listaAtual.contains(minhaLista.get(i))){
+                    minhaLista.remove(i);
+                }
+            }
+            // no fim eu tenho na 'minha lista' so quem saiu
+
+
+            // percorro minha lista de amigos
+            for (Map.Entry<String, Address> e : nickToAddress.entrySet()) {
+                String key = e.getKey();
+                Address address = e.getValue();
+
+                // pego o nick dos que sairam
+                if (minhaLista.contains(address)) {
+                    nickSairam.add(key);
+                }
+
+                // no fim tenho todos os nicks dos que sairam
+            }
+
+            // apago da minha lista aqueles que sairam
+            for (String nick : nickSairam) {
+                nickToAddress.remove(nick);
+            }
+
+            System.out.println("Sairam do chat: "+ nickSairam);
+
+        }
+
+        System.out.println("DEBUG: nickToAddress: "+nickToAddress);
+        System.out.println("DEBUG: address: "+listaAtual);
+*/
+        /*
+        Address endereco;
+        for (String nome : nickToAddress.keySet()) {
+            endereco = nickToAddress.get(nome);
+            if (!listaAtual.contains(endereco)){
+                nickToAddress.remove(nome);
+            }
+        }
+
+        System.out.println("Membros Ativos: "+nickToAddress.keySet());
+        * */
 
     }
 
