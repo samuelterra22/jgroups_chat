@@ -19,27 +19,16 @@ import java.util.Map;
 public class CriaMensagem implements Serializable {
 
     private String conteudo;
-    private Message pacoteMulti, pacoteUni, pacoteAny;
+    private Message pacoteUni, pacoteAny;
 
     public CriaMensagem() {
-        this.pacoteMulti = new Message(null, "");
         this.pacoteUni = new Message(null, "");
         this.pacoteAny = new Message(null, "");
     }
 
-
-    public Message criaMulticast(Usuario remetente, String conteudo, String hora, Map<String, Address> listaDeContatos, Map<Address, String> listaDeAddress, Map<String, Grupo> listaDeGrupos) {//multicast
-        Mensagem msg = new Mensagem(null, remetente, conteudo, hora);
-        Pacote pacote = new Pacote(msg, listaDeContatos, listaDeAddress, listaDeGrupos, null, Tag.MENSAGEM_MULTCAST, null);
-
-        //this.pacoteMulti.setSrc(remetente.getAddress());
-        this.pacoteMulti.setDest(null);//multicast
-        this.pacoteMulti.setObject(pacote);
-        setMessagem(conteudo);
-        return this.pacoteMulti;
-    }
-
-    // retorna um objeto Message ja montado com o Pacote contendo as informações necessarias
+    /**
+     * Retorna um objeto Message ja montado com o Pacote contendo as informações necessarias
+     * */
     public Message criaUnicast(Usuario destinatario, Usuario remetente,  String conteudo, String hora,
                                Map<String, Address> listaDeContatos, Map<Address, String> listaDeAddress,
                                Map<String, Grupo> listaDeGrupos, Map<String, List<String>> conversas) {//unicast
@@ -55,11 +44,9 @@ public class CriaMensagem implements Serializable {
     }
 
 
-    public Message criaAnycast(Address[] listaGrupo, String novoConteudo) {//anycast
-        //this.pacoteAny = new Message(listaGrupo, novoConteudo);
-        return pacoteAny;
-    }
-
+    /**
+     * Retorna o conteudo da mensagem
+     * */
     public String getMessagem() {
         return this.conteudo;
         //return (String) super.getObject();

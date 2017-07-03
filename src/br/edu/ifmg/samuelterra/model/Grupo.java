@@ -19,9 +19,7 @@ import java.util.List;
 public class Grupo implements Serializable {
 
     private String nome;
-
     private Usuario coordenador;
-
     private List<Usuario> usuarios;
 
     public Grupo() {
@@ -81,6 +79,9 @@ public class Grupo implements Serializable {
         return this.usuarios.size();
     }
 
+    /**
+     * Método responsável por verificar se um determinado usuário pertence ao grupo
+     * */
     public boolean contemUsuario(Usuario usuario){
         for (Usuario u : usuarios) {
             if (u.getAddress() == usuario.getAddress()){
