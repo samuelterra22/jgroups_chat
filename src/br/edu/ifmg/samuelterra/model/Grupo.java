@@ -7,6 +7,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+
+/***********************************************************************************************************************
+ *                                         JGroups Chat v1.0                                                           *
+ *   Alunos:        Matheus Calixto | Samuel Terra                                                                     *
+ *   Professor:     Everthon Valadão                                                                                   *
+ *   Disciplina:    Sistemas Distribuidos                                                                              *
+ *   Modificado em: 03/07/2017                                                                                         *
+ *                                                                                                                     *
+ **********************************************************************************************************************/
 public class Grupo implements Serializable {
 
     private String nome;

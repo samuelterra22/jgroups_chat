@@ -7,6 +7,14 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+/***********************************************************************************************************************
+ *                                         JGroups Chat v1.0                                                           *
+ *   Alunos:        Matheus Calixto | Samuel Terra                                                                     *
+ *   Professor:     Everthon Valadão                                                                                   *
+ *   Disciplina:    Sistemas Distribuidos                                                                              *
+ *   Modificado em: 03/07/2017                                                                                         *
+ *                                                                                                                     *
+ **********************************************************************************************************************/
 public class Pacote implements Serializable {
 
     private Mensagem mensagem;
@@ -17,7 +25,8 @@ public class Pacote implements Serializable {
     private Tag tag;
     private Grupo grupo;
 
-    public Pacote(Mensagem mensagem, Map<String, Address> listaDeContatos, Map<Address, String> listaDeAddress, Map<String, Grupo>  listDeGrupos, Map<String, List<String>> conversas, Tag tag, Grupo grupo) {
+    public Pacote(Mensagem mensagem, Map<String, Address> listaDeContatos, Map<Address, String> listaDeAddress,
+                  Map<String, Grupo>  listDeGrupos, Map<String, List<String>> conversas, Tag tag, Grupo grupo) {
         this.mensagem = mensagem;
         this.listaDeContatos = listaDeContatos;
         this.listaDeAddress = listaDeAddress;

@@ -8,7 +8,14 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-
+/***********************************************************************************************************************
+ *                                         JGroups Chat v1.0                                                           *
+ *   Alunos:        Matheus Calixto | Samuel Terra                                                                     *
+ *   Professor:     Everthon Valadão                                                                                   *
+ *   Disciplina:    Sistemas Distribuidos                                                                              *
+ *   Modificado em: 03/07/2017                                                                                         *
+ *                                                                                                                     *
+ **********************************************************************************************************************/
 public class CriaMensagem implements Serializable {
 
     private String conteudo;
