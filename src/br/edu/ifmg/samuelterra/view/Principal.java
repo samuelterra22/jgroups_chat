@@ -129,12 +129,17 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
     public void ficarOffline(){
         nickToAddress.remove(nickname);
 
-        atualizaDados();
-
-        if (canal.isConnected()){
-            canal.disconnect();
+        if (isOnline()){
+            atualizaDados();
         }
-        canal.close();
+
+        if (canal != null){
+            if (canal.isConnected()){
+                canal.disconnect();
+                canal.close();
+            }
+        }
+
         canal = null;
         salvaHistoricoOffline();
     }
