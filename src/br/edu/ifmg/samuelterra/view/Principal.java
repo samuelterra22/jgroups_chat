@@ -189,7 +189,7 @@ public class Principal extends ReceiverAdapter implements RequestHandler {
             if (nickDefinido()){
                 if (!nickExiste()){
                     System.out.println("Você não está online, conectando...");
-                    canal = new JChannel("chat2.xml");      //achou
+                    canal = new JChannel("chat.xml");
 
                     despachante = new MessageDispatcher(canal, null, null, this);
                     despachante.setRequestHandler(this);
